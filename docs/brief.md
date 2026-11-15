@@ -14,7 +14,7 @@ Gemini lists regulated "X or above" price ladders for BTC, ETH, SOL, XRP, ZEC, H
 
 1. **Relayer** (Cloudflare Worker, every minute) reads Gemini's live ladders from the public API and posts the raw quotes (strike, bid, ask, expiry, event ticker) to Solana devnet. It posts quotes, never conclusions.
 2. **Brace program** (Anchor) filters the quotes, converts each midpoint to a z-score with a fixed lookup table, fits the curve by least squares, and stores implied volatility plus a confidence score per asset. All of this math runs onchain, so anyone can check it.
-3. **Risk rule:** max LTV = the lower of the governance max and a volatility-adjusted limit. Odds can only tighten limits, never loosen them past governance, and never liquidate anyone. Stale or low-confidence data falls back to the governance default.
+3. **Risk rule:** max LTV = the lower of the governance max and a volatility-adjusted limit. Odds can only tighten limits, never loosen them past governance, and never liquidate anyone. Stale or low-confidence data never loosens anything: Brace keeps the last valid limit and steps it down toward a conservative stale-mode floor until fresh data arrives (fail safe, not fail open; flagged by Alchin, Nov 15).
 4. **Demo lending pool:** deposit devnet SOL, borrow test USDC. Borrows and withdrawals are checked against Brace's live limit; liquidation uses the fixed threshold only. Any other lending program can make the same check through one CPI.
 5. **QuickNode Streams** watches the Brace program on devnet and feeds a webhook that records every volatility update, blocked borrow and liquidation. That history powers the dashboard timeline and keeper alerts.
 
@@ -67,7 +67,7 @@ Open the Brace link on a phone, no wallet needed: the risk board shows Gemini-im
 
 - **Scope against Holdfast.** Two builds in one week. Mitigation: the plan's nice-to-haves get cut first; the risk board plus one borrow check is the demo.
 - **Teammate gate.** No committed US teammate by the end of Fri Nov 13 means UBC stops here.
-- **Thin Gemini liquidity.** Quotes exist, trades are rare. Confidence scoring plus fallback to governance defaults; the README says so plainly.
+- **Thin Gemini liquidity.** Quotes exist, trades are rare. Confidence scoring plus fail-safe stale mode (hold last limit, step down to a conservative floor); the README says so plainly.
 - **Relayer trust.** A dishonest relayer could misreport quotes. It can't fake the math, and a bad quote can only tighten limits. Every posted quote carries the Gemini event ticker and timestamp for audit.
 - **We can't make volatility happen on demand.** The demo shows real live numbers; any replay of earlier recorded data is labeled as a replay.
 - **Gemini data terms.** Ask at Gemini office hours (Thu Nov 19, 1:00 AM Lagos) whether publishing derived values onchain is fine.
