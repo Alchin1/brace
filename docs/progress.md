@@ -4,8 +4,8 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 
 | # | Task | Status | Gate proof | Commit |
 |---|---|---|---|---|
-| 1 | Scaffold | pending | | |
-| 2 | Math module | pending | | |
+| 1 | Scaffold | done | anchor build exit 0 | bf23d46 |
+| 2 | Math module | done | 11/11 tests incl. live SOL/BTC/ZEC fixtures, 5k-case properties; anchor build exit 0 | (this commit) |
 | 3 | Oracle feed | pending | | |
 | 4 | Pool | pending | | |
 | 5 | Invariants | pending | | |
@@ -18,7 +18,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 12 | Borrow flow | pending | | |
 | 13 | Re-check | pending | | |
 
-Next up: Task 1.
+Next up: Task 3 (oracle feed and post_quotes).
 
 ## Session log
 
