@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount};
 
-use crate::{constants::*, error::BraceError, instructions::withdraw::pay_from_pool, state::*};
+use crate::{constants::*, error::BraceError, instructions::withdraw::pay_from_pool, math, state::*};
 
 #[derive(Accounts)]
 pub struct Liquidate<'info> {
@@ -23,12 +23,14 @@ pub struct Liquidate<'info> {
 }
 
 pub fn handle_liquidate(ctx: Context<Liquidate>) -> Result<()> {
+    let now = Clock::get()?.unix_timestamp;
+    let spot = ctx.accounts.sol_feed.fresh_spot_e6(now)?;
     let pos = &ctx.accounts.position;
-    let spot = ctx.accounts.sol_feed.spot_e6;
     let debt = pos.debt;
     let collateral = pos.collateral_lamports;
-    let value = collateral_value_e6(collateral, spot)?;
-    let ltv = ltv_bps(debt, value)?;
+    // One step, in the borrower's favour (value up, LTV down): a position at or
+    // below the threshold by true value is never liquidatable.
+    let ltv = math::liq_ltv_bps(debt, collateral, spot).ok_or(BraceError::MathOverflow)?;
     // Hard threshold only: never the odds-driven effective limit.
     require!(ltv > ctx.accounts.config.params.liq_threshold_bps as u64, BraceError::NotLiquidatable);
 

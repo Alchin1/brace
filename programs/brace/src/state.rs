@@ -69,6 +69,16 @@ pub struct Feed {
 }
 
 impl Feed {
+    /// Spot usable for pricing collateral: a confident post set it within MAX_PRICE_AGE_SECS.
+    pub fn fresh_spot_e6(&self, now: i64) -> Result<u64> {
+        let age = (now as i128) - (self.last_valid_at as i128);
+        if !self.has_valid || self.spot_e6 == 0 || age > crate::constants::MAX_PRICE_AGE_SECS as i128 {
+            msg!("brace stale price age={} has_valid={}", age, self.has_valid as u8);
+            return err!(crate::error::BraceError::StalePrice);
+        }
+        Ok(self.spot_e6)
+    }
+
     pub fn effective_ltv_bps(&self, p: &Params, now: i64) -> u16 {
         math::effective_limit_bps(
             self.has_valid,

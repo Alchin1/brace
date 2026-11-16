@@ -94,6 +94,7 @@ pub fn handle_post_quotes(
 ) -> Result<()> {
     require!(quotes.len() <= MAX_QUOTES, BraceError::TooManyQuotes);
     require!(valid_symbol(&symbol), BraceError::InvalidSymbol);
+    require!(spot_e6 > 0, BraceError::InvalidAmount);
 
     let now = Clock::get()?.unix_timestamp;
     let p = ctx.accounts.config.params;
@@ -126,7 +127,6 @@ pub fn handle_post_quotes(
     };
 
     feed.symbol = symbol;
-    feed.spot_e6 = spot_e6;
     feed.expiry_ts = expiry_ts;
     feed.ticker = ticker;
     feed.posted_at = now;
@@ -153,20 +153,26 @@ pub fn handle_post_quotes(
                 math::sigma_annual_bps(f.s_t_e6, t_u),
                 math::horizon_move_e6(f.s_t_e6, t_u, p.horizon_secs as u64),
             ) {
-                let limit = math::vol_limit_bps(
-                    p.liq_threshold_bps,
-                    p.k_x100,
-                    s_h,
-                    p.abs_floor_ltv_bps,
-                    p.gov_max_ltv_bps,
-                );
-                result = Some((sigma, s_h, limit));
+                if sigma < MIN_SIGMA_BPS {
+                    msg!("brace sigma_bps={} below floor {}", sigma, MIN_SIGMA_BPS);
+                } else {
+                    let limit = math::vol_limit_bps(
+                        p.liq_threshold_bps,
+                        p.k_x100,
+                        s_h,
+                        p.abs_floor_ltv_bps,
+                        p.gov_max_ltv_bps,
+                    );
+                    result = Some((sigma, s_h, limit));
+                }
             }
         }
     }
 
     match (result, fit) {
         (Some((sigma, s_h, limit)), Some(f)) => {
+            // Spot only moves together with a confident fit it was checked against.
+            feed.spot_e6 = spot_e6;
             feed.points = f.points;
             feed.median_e6 = f.median_e6;
             feed.sigma_bps = sigma;
@@ -194,7 +200,7 @@ pub fn handle_post_quotes(
         sigma_bps: feed.sigma_bps,
         max_ltv_bps: feed.max_ltv_bps,
         effective_ltv_bps: effective,
-        spot_e6,
+        spot_e6: feed.spot_e6,
         median_e6: feed.median_e6,
         points: feed.points,
         expiry_ts,

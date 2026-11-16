@@ -4,11 +4,14 @@ use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
 use crate::{constants::*, error::BraceError, state::*};
 
 /// LTV of (debt, collateral) at the feed's spot, checked against the odds-driven
-/// effective limit. Logs "brace blocked ..." and fails with RiskTightened if above.
+/// effective limit. Fails with StalePrice if the spot is missing or too old.
+/// Conservative rounding: value down, LTV up.
+/// Logs "brace blocked ..." and fails with RiskTightened if above.
 pub fn check_limit(debt: u64, collateral: u64, feed: &Feed, params: &Params) -> Result<(u64, u16)> {
     let now = Clock::get()?.unix_timestamp;
+    let spot = feed.fresh_spot_e6(now)?;
     let limit = feed.effective_ltv_bps(params, now);
-    let value = collateral_value_e6(collateral, feed.spot_e6)?;
+    let value = collateral_value_e6(collateral, spot)?;
     let ltv = ltv_bps(debt, value)?;
     if ltv > limit as u64 {
         msg!("brace blocked ltv={} limit={}", ltv, limit);

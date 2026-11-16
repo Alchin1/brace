@@ -14,7 +14,8 @@ pub struct InitPool<'info> {
     #[account(init, payer = admin, space = 8 + Pool::INIT_SPACE, seeds = [POOL_SEED], bump)]
     pub pool: Account<'info, Pool>,
     /// CHECK: test USD mint PDA, created and initialized in the handler
-    /// (system create_account signed by the PDA, then InitializeMint2).
+    /// (system create_account signed by the PDA, or top-up + allocate + assign
+    /// if it was pre-funded, then InitializeMint2).
     #[account(mut, seeds = [USD_MINT_SEED], bump)]
     pub usd_mint: UncheckedAccount<'info>,
     pub token_program: Program<'info, Token>,
@@ -28,19 +29,39 @@ pub fn handle_init_pool(ctx: Context<InitPool>) -> Result<()> {
     let bump_seed = [mint_bump];
     let seeds: &[&[u8]] = &[USD_MINT_SEED, &bump_seed];
     let signer: &[&[&[u8]]] = &[seeds];
-    system_program::create_account(
-        CpiContext::new_with_signer(
-            ctx.accounts.system_program.key(),
-            system_program::CreateAccount {
-                from: ctx.accounts.admin.to_account_info(),
-                to: ctx.accounts.usd_mint.to_account_info(),
-            },
-            signer,
-        ),
-        rent,
-        space as u64,
-        &spl_token::ID,
-    )?;
+    let mint = ctx.accounts.usd_mint.to_account_info();
+    let payer = ctx.accounts.admin.to_account_info();
+    let sys = ctx.accounts.system_program.key();
+    if mint.lamports() == 0 {
+        system_program::create_account(
+            CpiContext::new_with_signer(sys, system_program::CreateAccount { from: payer, to: mint }, signer),
+            rent,
+            space as u64,
+            &spl_token::ID,
+        )?;
+    } else {
+        // Someone pre-funded the PDA: create_account would fail, so top up,
+        // allocate and assign (PDA-signed) instead.
+        let top_up = rent.saturating_sub(mint.lamports());
+        if top_up > 0 {
+            system_program::transfer(
+                CpiContext::new(sys, system_program::Transfer { from: payer, to: mint.clone() }),
+                top_up,
+            )?;
+        }
+        system_program::allocate(
+            CpiContext::new_with_signer(
+                sys,
+                system_program::Allocate { account_to_allocate: mint.clone() },
+                signer,
+            ),
+            space as u64,
+        )?;
+        system_program::assign(
+            CpiContext::new_with_signer(sys, system_program::Assign { account_to_assign: mint }, signer),
+            &spl_token::ID,
+        )?;
+    }
     token::initialize_mint2(
         CpiContext::new(
             ctx.accounts.token_program.key(),

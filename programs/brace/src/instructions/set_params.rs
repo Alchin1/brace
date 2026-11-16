@@ -21,6 +21,7 @@ pub fn handle_set_params(ctx: Context<AdminConfig>, params: Params) -> Result<()
 }
 
 pub fn handle_set_relayer(ctx: Context<AdminConfig>, relayer: Pubkey) -> Result<()> {
+    require!(relayer != Pubkey::default(), BraceError::InvalidParams);
     ctx.accounts.config.relayer = relayer;
     Ok(())
 }

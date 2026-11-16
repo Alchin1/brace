@@ -30,6 +30,7 @@ const E_RISK_TIGHTENED: u32 = 6005;
 const E_NOT_LIQUIDATABLE: u32 = 6006;
 const E_INSUFFICIENT_COLLATERAL: u32 = 6007;
 const E_INVALID_AMOUNT: u32 = 6008;
+const E_STALE_PRICE: u32 = 6009;
 const E_CONSTRAINT_SEEDS: u32 = 2006;
 
 struct Env {
@@ -441,10 +442,15 @@ fn p06_healthy_position_not_liquidatable() {
     let liq_ata = create_token_account(&mut env, &liq.pubkey());
     let pos = position_pda(&env.owner.pubkey());
     assert_code(send(&mut env, &[liquidate_ix(&liq.pubkey(), liq_ata, pos)], &[&liq]), E_NOT_LIQUIDATABLE);
-    // Fully stale: odds limit falls to the stale floor (5000), far below LTV 6900, still not liquidatable.
-    set_now(&mut env.svm, NOW + 86_400);
+    // At the max price age (3600 s) the odds limit has fallen to the stale floor (5000),
+    // far below LTV 6900: borrowing is blocked but the position is still not liquidatable.
+    set_now(&mut env.svm, NOW + 3_600);
     assert_code(borrow(&mut env, 1), E_RISK_TIGHTENED);
     assert_code(send(&mut env, &[liquidate_ix(&liq.pubkey(), liq_ata, pos)], &[&liq]), E_NOT_LIQUIDATABLE);
+    // Beyond the max price age nothing prices off the stale spot.
+    set_now(&mut env.svm, NOW + 86_400);
+    assert_code(borrow(&mut env, 1), E_STALE_PRICE);
+    assert_code(send(&mut env, &[liquidate_ix(&liq.pubkey(), liq_ata, pos)], &[&liq]), E_STALE_PRICE);
     assert_eq!(read_position(&env, &env.owner.pubkey()).debt, pct(69));
     check_invariants(&env);
 }

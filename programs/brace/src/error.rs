@@ -20,4 +20,6 @@ pub enum BraceError {
     InsufficientCollateral,
     #[msg("Invalid amount")]
     InvalidAmount,
+    #[msg("Price is missing or older than the max price age")]
+    StalePrice,
 }

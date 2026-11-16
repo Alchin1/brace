@@ -10,6 +10,12 @@ pub const FEED_SEED: &[u8] = b"feed";
 
 pub const MAX_QUOTES: usize = 16;
 
+/// A fit is only confident if its annualised sigma is at least 5%.
+pub const MIN_SIGMA_BPS: u64 = 500;
+
+/// Borrow, withdraw (with debt) and liquidate refuse prices older than this.
+pub const MAX_PRICE_AGE_SECS: i64 = 3_600;
+
 pub const DEFAULT_PARAMS: Params = Params {
     gov_max_ltv_bps: 7500,
     liq_threshold_bps: 8000,

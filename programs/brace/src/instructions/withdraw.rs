@@ -37,6 +37,7 @@ pub fn handle_withdraw(ctx: Context<Withdraw>, lamports: u64) -> Result<()> {
     let pos = &ctx.accounts.position;
     require!(lamports <= pos.collateral_lamports, BraceError::InsufficientCollateral);
     let new_collateral = pos.collateral_lamports - lamports;
+    // Zero debt: the owner can always exit, even on a stale price.
     if pos.debt > 0 {
         check_limit(pos.debt, new_collateral, &ctx.accounts.sol_feed, &ctx.accounts.config.params)?;
     }

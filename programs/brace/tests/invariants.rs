@@ -26,6 +26,9 @@ const SPOT: u64 = 71_965_000;
 const EXPIRY_OFFSET: i64 = 86_134;
 const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 
+/// Matches brace::MAX_PRICE_AGE_SECS.
+const MAX_PRICE_AGE: i64 = 3_600;
+
 const SEEDS: u64 = 20;
 const ACTIONS_PER_SEED: usize = 150;
 
@@ -325,6 +328,11 @@ impl Sim {
     fn lamports(&self, k: &Pubkey) -> u64 {
         self.svm.get_account(k).map(|a| a.lamports).unwrap_or(0)
     }
+    /// Invariant 8 precondition: the SOL price cannot be used (missing or older than 3600 s).
+    fn price_stale(&self) -> bool {
+        let f = self.feed();
+        !f.has_valid || f.spot_e6 == 0 || self.now - f.last_valid_at > MAX_PRICE_AGE
+    }
     fn eff(&self) -> u16 {
         self.feed().effective_ltv_bps(&DEFAULT_PARAMS, self.now)
     }
@@ -406,7 +414,7 @@ impl Sim {
         sim
     }
 
-    /// Invariants 1, 2, 5 (config part), 6, 7. `confident_post` resets invariant 2.
+    /// Invariants 1, 2, 5 (config part), 6, 7. Confident posts reset invariant 2.
     fn check_global(&mut self, ctx: &str) {
         let p = DEFAULT_PARAMS;
         let feed = self.feed();
@@ -423,13 +431,13 @@ impl Sim {
         let cfg_now = self.svm.get_account(&config_pda()).unwrap().data;
         assert_eq!(cfg_now, self.config_bytes, "[{ctx}] inv5: config changed");
 
-        // 6. supply == total_debt == sum of debts
+        // 6. supply <= total_debt == sum of debts (holders may burn test USD themselves)
         let pool = self.pool();
         let positions: Vec<Position> = (0..4).map(|i| self.position(i)).collect();
         let sum_debt: u64 = positions.iter().map(|x| x.debt).sum();
         let sum_coll: u64 = positions.iter().map(|x| x.collateral_lamports).sum();
         let supply = self.mint_supply();
-        assert_eq!(supply, pool.total_debt, "[{ctx}] inv6: supply vs total_debt");
+        assert!(supply <= pool.total_debt, "[{ctx}] inv6: supply {supply} > total_debt {}", pool.total_debt);
         assert_eq!(pool.total_debt, sum_debt, "[{ctx}] inv6: total_debt vs sum of debts");
 
         // 7. pool lamports cover collateral + rent; total_collateral == sum
@@ -545,7 +553,13 @@ impl Sim {
                     5 => room + rng.range(1, 1_000),
                     _ => rng.range(1, room.max(1)),
                 };
+                let stale = self.price_stale();
                 let ok = self.send(&[borrow_ix(&o.pubkey(), self.atas[user], amt)], &[&o]).is_ok();
+                if stale {
+                    // 8. nothing prices off a stale spot
+                    assert!(!ok, "[{ctx}] inv8: borrow succeeded on a stale price");
+                    counts.entry("stale_blocked").or_default().attempted += 1;
+                }
                 if ok {
                     self.check_touched(user, ctx);
                 }
@@ -589,7 +603,13 @@ impl Sim {
                     4 | 5 => safe,
                     _ => rng.range(1, pos.collateral_lamports.max(1)),
                 };
+                let stale_with_debt = self.price_stale() && pos.debt > 0;
                 let ok = self.send(&[withdraw_ix(&o.pubkey(), amt)], &[&o]).is_ok();
+                if stale_with_debt {
+                    // 8. with debt outstanding, a stale price blocks withdrawals
+                    assert!(!ok, "[{ctx}] inv8: withdraw with debt succeeded on a stale price");
+                    counts.entry("stale_blocked").or_default().attempted += 1;
+                }
                 if ok {
                     self.check_touched(user, ctx);
                 }
@@ -606,9 +626,21 @@ impl Sim {
                 let pre = self.position(target);
                 let l = self.owners[LIQ].insecure_clone();
                 let ix = liquidate_ix(&l.pubkey(), self.atas[LIQ], position_pda(&self.owners[target].pubkey()));
+                let stale = self.price_stale();
+                let spot = self.feed().spot_e6;
                 let ok = self.send(&[ix], &[&l]).is_ok();
+                if stale {
+                    // 8. no liquidation on a stale price
+                    assert!(!ok, "[{ctx}] inv8: liquidation succeeded on a stale price");
+                    counts.entry("stale_blocked").or_default().attempted += 1;
+                }
                 if ok {
-                    // 4. only on positions above the hard liquidation threshold
+                    // 4. only on positions above the hard threshold by true value
+                    let true_ltv = brace::math::liq_ltv_bps(pre.debt, pre.collateral_lamports, spot).unwrap();
+                    assert!(
+                        true_ltv > DEFAULT_PARAMS.liq_threshold_bps as u64,
+                        "[{ctx}] inv4: liquidated position {target} with true LTV {true_ltv}"
+                    );
                     assert!(
                         pre_ltv > DEFAULT_PARAMS.liq_threshold_bps as u64,
                         "[{ctx}] inv4: liquidated position {target} with pre-LTV {pre_ltv} (debt {}, coll {})",
@@ -640,7 +672,8 @@ impl Sim {
                     c.attempted += 1;
                     c.succeeded += 1;
                 } else if ok {
-                    // Non-confident: the risk state is untouched.
+                    // Non-confident: the risk state and the spot are untouched.
+                    assert_eq!(after.spot_e6, before.spot_e6, "[{ctx}] non-confident post moved spot");
                     assert_eq!(after.max_ltv_bps, before.max_ltv_bps, "[{ctx}] non-confident post changed max_ltv");
                     assert_eq!(after.last_valid_at, before.last_valid_at, "[{ctx}] non-confident post changed last_valid_at");
                     assert_eq!(after.has_valid, before.has_valid, "[{ctx}] non-confident post changed has_valid");
@@ -714,5 +747,7 @@ fn fuzz_invariants() {
         let s = counts.get(k).map(|s| s.succeeded).unwrap_or(0);
         assert!(s >= 3, "coverage: {k} succeeded only {s} times");
     }
+    let stale = counts.get("stale_blocked").map(|s| s.attempted).unwrap_or(0);
+    assert!(stale >= 3, "coverage: stale-price actions attempted only {stale} times");
     assert_eq!(counts.get("non_relayer_post").map(|s| s.succeeded).unwrap_or(0), 0);
 }

@@ -139,27 +139,44 @@ pub fn fit_ladder(quotes: &[Quote], max_spread_bps: u16, min_points: u8) -> Opti
         if q.ask_bps - q.bid_bps > max_spread_bps {
             continue;
         }
-        // (bid + ask) is in half-bps; one 50-bps step is 100 half-bps. Ties round up.
+        // (bid + ask) is in half-bps: range-check the unsnapped midpoint (3%..97%),
+        // then snap to the 50-bps grid (one step is 100 half-bps). Ties round up.
         let sum = q.bid_bps as u32 + q.ask_bps as u32;
+        if !(600..=19_400).contains(&sum) {
+            continue;
+        }
         let mid = (sum + 50) / 100 * 50;
-        if (300..=9700).contains(&mid) {
-            kept.push((q.strike_e6, mid as u16));
+        kept.push((q.strike_e6, mid as u16));
+    }
+    if kept.is_empty() {
+        return None;
+    }
+    let mut strikes: Vec<u64> = kept.iter().map(|&(k, _)| k).collect();
+    strikes.sort_unstable();
+    let k_ref = strikes[strikes.len() / 2];
+
+    // Strikes beyond the ln-series range (more than 15% from k_ref) are skipped.
+    let mut pts: Vec<(i128, i128, u64)> = Vec::with_capacity(kept.len());
+    for &(k, mid) in &kept {
+        if let Some(x) = ln_ratio_e9(k, k_ref) {
+            pts.push((x as i128, probit_e6(mid)? as i128, k));
         }
     }
-    let n = kept.len();
+    let n = pts.len();
     if n < 2 || n < min_points as usize {
         return None;
     }
     let points = u8::try_from(n).ok()?;
 
-    let mut strikes: Vec<u64> = kept.iter().map(|&(k, _)| k).collect();
-    strikes.sort_unstable();
-    let k_ref = strikes[n / 2];
+    // Degenerate ladders: the kept strikes must span at least 0.5%.
+    let min_k = pts.iter().map(|p| p.2).min()? as u128;
+    let max_k = pts.iter().map(|p| p.2).max()? as u128;
+    if max_k * 10_000 < min_k * 10_050 {
+        return None;
+    }
 
     let (mut sx, mut sz, mut sxx, mut sxz) = (0i128, 0i128, 0i128, 0i128);
-    for &(k, mid) in &kept {
-        let x = ln_ratio_e9(k, k_ref)? as i128;
-        let z = probit_e6(mid)? as i128;
+    for &(x, z, _) in &pts {
         sx = sx.checked_add(x)?;
         sz = sz.checked_add(z)?;
         sxx = sxx.checked_add(x.checked_mul(x)?)?;
@@ -219,6 +236,23 @@ pub fn vol_limit_bps(liq_bps: u16, k_x100: u16, s_h_e6: u64, abs_floor_bps: u16,
     let raw: u128 = if m >= DEN { 0 } else { (liq_bps as u128) * (DEN - m) / DEN };
     let raw = u16::try_from(raw).unwrap_or(u16::MAX);
     raw.clamp(abs_floor_bps, gov_max_bps)
+}
+
+/// LTV in bps for the liquidation check, computed in one step from lamports and
+/// spot and rounded DOWN (exact debt / (lamports * spot / 1e9), floored), so a
+/// position at or below the threshold by true value never qualifies.
+/// Zero debt is 0; debt against zero value is 10001.
+pub fn liq_ltv_bps(debt: u64, lamports: u64, spot_e6: u64) -> Option<u64> {
+    if debt == 0 {
+        return Some(0);
+    }
+    let den = (lamports as u128).checked_mul(spot_e6 as u128)?;
+    if den == 0 {
+        return Some(10_001);
+    }
+    // debt * 1e4 (bps) * 1e9 (lamports per SOL) fits u128 for any u64 debt.
+    let num = (debt as u128).checked_mul(10_000_000_000_000)?;
+    u64::try_from(num / den).ok().or(Some(u64::MAX))
 }
 
 /// Max LTV with staleness decay: steps down by stale_step per stale period,
@@ -369,6 +403,76 @@ mod tests {
     }
 
     #[test]
+    fn far_strike_is_skipped_not_fatal() {
+        // ZEC ladder plus a valid quote >15% from k_ref: the far strike is dropped.
+        let quotes = [
+            q(900000000, 7400, 8700),
+            q(910000000, 4700, 6000),
+            q(920000000, 1900, 3200),
+            q(930000000, 200, 1400),
+            q(750000000, 9500, 9700),
+            q(870000000, 9300, 0),
+        ];
+        let fit = fit_ladder(&quotes, 1500, 3).expect("far strike must not kill the fit");
+        assert_eq!(fit.points, 4);
+        let base = fit_ladder(&quotes[..4], 1500, 3).unwrap();
+        assert_eq!(fit.s_t_e6, base.s_t_e6);
+        // k_ref is picked before the far strike is dropped, so allow rounding noise.
+        assert!(fit.median_e6.abs_diff(base.median_e6) <= 10, "{} vs {}", fit.median_e6, base.median_e6);
+        // Count after the filter: 2 near + 1 far is below min_points 3.
+        let few = [q(910000000, 4700, 6000), q(920000000, 1900, 3200), q(1_300_000_000, 9500, 9700)];
+        assert_eq!(fit_ladder(&few, 1500, 3), None);
+    }
+
+    #[test]
+    fn mid_range_checked_before_snapping() {
+        // bid+ask = 590 half-bps (mid 2.95%) snaps to 300 but is outside 300..=9700.
+        let low = [q(70_000_000, 7000, 7400), q(71_000_000, 5000, 5400), q(72_000_000, 250, 340)];
+        assert_eq!(fit_ladder(&low, 1500, 3), None);
+        // bid+ask = 19410 (mid 97.05%) snaps to 9700 but is outside the range.
+        let high = [q(70_000_000, 9700, 9710), q(71_000_000, 5000, 5400), q(72_000_000, 3000, 3400)];
+        assert_eq!(fit_ladder(&high, 1500, 3), None);
+        // Exactly at the edges (600 and 19400 half-bps) is kept.
+        let edge = [q(70_000_000, 9650, 9750), q(71_000_000, 5000, 5400), q(72_000_000, 250, 350)];
+        assert_eq!(fit_ladder(&edge, 1500, 3).map(|f| f.points), Some(3));
+    }
+
+    #[test]
+    fn degenerate_strike_span_rejected() {
+        let tight = [q(100_000_000, 9650, 9750), q(100_000_001, 4950, 5050), q(100_000_002, 250, 350)];
+        assert_eq!(fit_ladder(&tight, 1500, 3), None);
+        // Span exactly 0.5% is accepted; just under is rejected.
+        let ok = [q(100_000_000, 9650, 9750), q(100_250_000, 4950, 5050), q(100_500_000, 250, 350)];
+        assert!(fit_ladder(&ok, 1500, 3).is_some());
+        let under = [q(100_000_000, 9650, 9750), q(100_250_000, 4950, 5050), q(100_499_999, 250, 350)];
+        assert_eq!(fit_ladder(&under, 1500, 3), None);
+    }
+
+    #[test]
+    fn liquidation_ltv_rounds_in_borrowers_favour() {
+        // True LTV 801 / 1001.9 = 79.95%: floors to 7994.
+        assert_eq!(liq_ltv_bps(801, 1_001_900, 1_000_000), Some(7994));
+        assert_eq!(liq_ltv_bps(0, 0, 0), Some(0));
+        assert_eq!(liq_ltv_bps(1, 0, 1_000_000), Some(10_001));
+        assert_eq!(liq_ltv_bps(1, 1_000, 0), Some(10_001));
+        // Exactly 80%: 800 / 1000.
+        assert_eq!(liq_ltv_bps(800, 1_000_000_000, 1_000), Some(8000));
+        assert!(liq_ltv_bps(u64::MAX, 1, 1).is_some());
+        let mut r = Rng(42);
+        for _ in 0..5_000 {
+            let (d, l, s) = (r.next() % 1_000_000_000_000, r.next() % 1_000_000_000_000_000, r.next() % 1_000_000_000_000);
+            let got = liq_ltv_bps(d, l, s).unwrap() as u128;
+            // got <= true LTV < got + 1
+            let den = l as u128 * s as u128;
+            if d == 0 || den == 0 {
+                continue;
+            }
+            let num = d as u128 * 10_000_000_000_000;
+            assert!(got * den <= num && num < (got + 1) * den);
+        }
+    }
+
+    #[test]
     fn vol_limit_cases() {
         assert_eq!(vol_limit_bps(8000, 300, 0, 3000, 7500), 7500);
         assert_eq!(vol_limit_bps(8000, 300, 10_000_000, 3000, 7500), 3000);
@@ -476,3 +580,4 @@ mod tests {
         }
     }
 }
+
