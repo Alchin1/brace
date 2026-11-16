@@ -6,7 +6,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 |---|---|---|---|---|
 | 1 | Scaffold | done | anchor build exit 0 | bf23d46 |
 | 2 | Math module | done | 11/11 tests incl. live SOL/BTC/ZEC fixtures, 5k-case properties; anchor build exit 0 | (this commit) |
-| 3 | Oracle feed | pending | | |
+| 3 | Oracle feed | done | 11/11 oracle tests; real SOL ladder logs sigma_bps=8272 max_ltv=6960 | (this commit) |
 | 4 | Pool | pending | | |
 | 5 | Invariants | pending | | |
 | 6 | Reviews | pending | | |
@@ -18,7 +18,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 12 | Borrow flow | pending | | |
 | 13 | Re-check | pending | | |
 
-Next up: Task 3 (oracle feed and post_quotes).
+Next up: Task 4 (pool). Review note: Feed PDA is created by hand in post_quotes (init-if-needed feature not enabled); spot price is relayer-trusted even on non-confident posts.
 
 ## Session log
 
