@@ -25,3 +25,20 @@ pub const DEFAULT_PARAMS: Params = Params {
     max_expiry_secs: 259_200,
     max_spot_gap_bps: 300,
 };
+
+#[constant]
+pub const POOL_SEED: &[u8] = b"pool";
+
+#[constant]
+pub const USD_MINT_SEED: &[u8] = b"usd_mint";
+
+#[constant]
+pub const POSITION_SEED: &[u8] = b"position";
+
+/// Symbol of the feed that prices pool collateral.
+pub const SOL_SYMBOL: [u8; 8] = *b"SOL\0\0\0\0\0";
+
+pub const USD_DECIMALS: u8 = 6;
+pub const LAMPORTS_PER_SOL: u128 = 1_000_000_000;
+/// Liquidator receives debt value + 5%.
+pub const LIQ_BONUS_BPS: u128 = 10_500;

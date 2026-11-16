@@ -38,4 +38,32 @@ pub mod brace {
     ) -> Result<()> {
         crate::instructions::post_quotes::handle_post_quotes(ctx, symbol, expiry_ts, ticker, spot_e6, quotes)
     }
+
+    pub fn init_pool(ctx: Context<InitPool>) -> Result<()> {
+        crate::instructions::init_pool::handle_init_pool(ctx)
+    }
+
+    pub fn open_position(ctx: Context<OpenPosition>) -> Result<()> {
+        crate::instructions::deposit::handle_open_position(ctx)
+    }
+
+    pub fn deposit(ctx: Context<Deposit>, lamports: u64) -> Result<()> {
+        crate::instructions::deposit::handle_deposit(ctx, lamports)
+    }
+
+    pub fn borrow(ctx: Context<Borrow>, amount: u64) -> Result<()> {
+        crate::instructions::borrow::handle_borrow(ctx, amount)
+    }
+
+    pub fn repay(ctx: Context<Repay>, amount: u64) -> Result<()> {
+        crate::instructions::repay::handle_repay(ctx, amount)
+    }
+
+    pub fn withdraw(ctx: Context<Withdraw>, lamports: u64) -> Result<()> {
+        crate::instructions::withdraw::handle_withdraw(ctx, lamports)
+    }
+
+    pub fn liquidate(ctx: Context<Liquidate>) -> Result<()> {
+        crate::instructions::liquidate::handle_liquidate(ctx)
+    }
 }

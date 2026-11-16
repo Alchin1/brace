@@ -97,3 +97,77 @@ pub struct QuotesPosted {
     pub ticker: [u8; 32],
     pub posted_at: i64,
 }
+
+#[account]
+#[derive(InitSpace)]
+pub struct Pool {
+    pub usd_mint: Pubkey,
+    pub total_debt: u64,
+    pub total_collateral: u64,
+    pub bump: u8,
+    pub mint_bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Position {
+    pub owner: Pubkey,
+    pub collateral_lamports: u64,
+    pub debt: u64,
+    pub bump: u8,
+}
+
+/// Collateral value in test USD base units: lamports * spot_e6 / 1e9.
+pub fn collateral_value_e6(lamports: u64, spot_e6: u64) -> Result<u64> {
+    let v = (lamports as u128)
+        .checked_mul(spot_e6 as u128)
+        .ok_or(crate::error::BraceError::MathOverflow)?
+        / crate::constants::LAMPORTS_PER_SOL;
+    u64::try_from(v).map_err(|_| crate::error::BraceError::MathOverflow.into())
+}
+
+/// LTV in bps, rounded up. Zero debt is 0; debt against zero value is 10001.
+pub fn ltv_bps(debt: u64, value: u64) -> Result<u64> {
+    if debt == 0 {
+        return Ok(0);
+    }
+    if value == 0 {
+        return Ok(10_001);
+    }
+    let n = (debt as u128).checked_mul(10_000).ok_or(crate::error::BraceError::MathOverflow)?;
+    u64::try_from(n.div_ceil(value as u128)).map_err(|_| crate::error::BraceError::MathOverflow.into())
+}
+
+#[event]
+pub struct Deposited {
+    pub owner: Pubkey,
+    pub lamports: u64,
+}
+
+#[event]
+pub struct Borrowed {
+    pub owner: Pubkey,
+    pub amount: u64,
+    pub ltv_bps: u64,
+    pub limit_bps: u16,
+}
+
+#[event]
+pub struct Repaid {
+    pub owner: Pubkey,
+    pub amount: u64,
+}
+
+#[event]
+pub struct Withdrawn {
+    pub owner: Pubkey,
+    pub lamports: u64,
+}
+
+#[event]
+pub struct Liquidated {
+    pub owner: Pubkey,
+    pub liquidator: Pubkey,
+    pub debt: u64,
+    pub seized: u64,
+}

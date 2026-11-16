@@ -7,7 +7,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 1 | Scaffold | done | anchor build exit 0 | bf23d46 |
 | 2 | Math module | done | 11/11 tests incl. live SOL/BTC/ZEC fixtures, 5k-case properties; anchor build exit 0 | (this commit) |
 | 3 | Oracle feed | done | 11/11 oracle tests; real SOL ladder logs sigma_bps=8272 max_ltv=6960 | (this commit) |
-| 4 | Pool | pending | | |
+| 4 | Pool | done | 9/9 pool tests (borrow blocked above live limit, stale step-down, liquidation only above 80%, supply = debts) | (this commit) |
 | 5 | Invariants | pending | | |
 | 6 | Reviews | pending | | |
 | 7 | Devnet deploy | pending (needs devnet SOL) | | |
@@ -18,7 +18,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 12 | Borrow flow | pending | | |
 | 13 | Re-check | pending | | |
 
-Next up: Task 4 (pool). Review note: Feed PDA is created by hand in post_quotes (init-if-needed feature not enabled); spot price is relayer-trusted even on non-confident posts.
+Next up: Task 5 (invariants) and Task 6 (reviews). Review notes: Feed PDA created by hand; spot price relayer-trusted (also used for liquidation, even when stale); anchor-spl needs token_2022 + solana-v3 features to build with idl-build.
 
 ## Session log
 
