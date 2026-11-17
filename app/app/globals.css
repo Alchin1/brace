@@ -1267,6 +1267,49 @@ button.btn:disabled:hover {
   font-family: var(--sans);
 }
 
+/* History */
+
+.history {
+  margin-top: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  max-width: 880px;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  background: var(--text-2);
+}
+
+.legend-line.accent {
+  background: var(--accent);
+  height: 2px;
+}
+
+.legend-line.muted {
+  background: var(--text-2);
+}
+
+.history-actions h2 {
+  font-size: 15px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.history-actions .muted {
+  margin-top: 8px;
+  max-width: 40rem;
+}
+
+.history-source {
+  font-size: 13px;
+  color: var(--text-3);
+  max-width: 40rem;
+}
+
 @media (max-width: 959px) {
   .borrow-intro,
   .borrow-grid {

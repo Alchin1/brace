@@ -16,9 +16,10 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 10 | README | first pass done (Claude); TBD-post-build lines remain for live links | judge-first structure, test counts verified (52 Rust, worker 18) | claude/readme merged |
 | 11 | Risk board | done (Claude) | live devnet data; app vitest 50/50, next build ok; redesigned around Gemini odds chart | claude/risk-board merged |
 | 12 | Borrow flow | built (Claude); needs Oh-Jay's Phantom phone check | devnet simulation: over-limit borrow fails 6005 'brace blocked ltv=7987 limit=6987', under-limit succeeds | claude/risk-board merged |
+| 12b | History page | done (Grok) | app vitest 60/60 (was 50), `npm run build` ok; live Streams data on /history; honest empty /actions; screenshots /workspace/brace-shots/history-390.png and history-1280.png | (this commit) |
 | 13 | Re-check | prep recorded (Grok); full re-check after the UI lands | 2026-11-17 05:46 WAT: `anchor build --ignore-keys` exit 0 (cargo-build-sbf LTO warning only); `cargo test -p brace` 52/52 (15 math, 12 adversarial, 1 fuzz 51.45s, 12 oracle, 9 pool, 3 worker_ix); worker vitest 55/55; tsc --noEmit exit 0; program live, all five Feeds confident; see session log and docs/reviews.md | (this commit) |
 
-Next up: Grok is on B2 (history page). Then B1 README pass 2. See docs/HANDOFF.md Part C.
+Next up: Grok is on B1 (README pass 2). See docs/HANDOFF.md Part C.
 
 ## Session log
 
@@ -61,3 +62,4 @@ Next up: Grok is on B2 (history page). Then B1 README pass 2. See docs/HANDOFF.m
 
 - Nov 17, 06:40 Lagos: Claude merged README first pass and the web app (board, asset pages, borrow flow) to main. Vercel project 'brace' (root app/) deploys main to production. Borrow flow verified by devnet simulation; real Phantom run pending.
 - Nov 17, 10:14 Lagos: Grok claimed B2 (history page) and started wiring /history and /actions into the app.
+- Nov 17, 10:20 Lagos: Grok shipped B2. History page reads `https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL&since=` and `/actions?since=` (last 24h). Hand-drawn SVG of SOL effective limit (accent) and implied vol (neutral). Honest empty state when /actions is []. Line: "Recorded by QuickNode Streams from every Brace transaction on devnet." Gate: `cd app && npx vitest run` 60/60, `npm run build` exit 0. Screenshots at 390px and 1280px: /workspace/brace-shots/history-390.png and history-1280.png.

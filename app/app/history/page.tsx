@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HistoryView } from "@/components/HistoryView";
 
 export const metadata: Metadata = { title: "History" };
 
@@ -10,17 +11,11 @@ export default function HistoryPage() {
         All assets
       </Link>
       <h1>History</h1>
-      <p className="lede">Every volatility update, blocked borrow and liquidation Brace records on devnet.</p>
-      <div className="card placeholder" role="status">
-        <p>History arrives with QuickNode Streams.</p>
-        <p>
-          Nothing is shown here until the stream is connected. For the current numbers, see the{" "}
-          <Link href="/" className="text-link" style={{ textDecoration: "underline", textUnderlineOffset: 4 }}>
-            live board
-          </Link>
-          .
-        </p>
-      </div>
+      <p className="lede">
+        SOL&apos;s implied volatility and borrowing limit over the last 24 hours, plus every borrow the program accepted or
+        rejected on devnet.
+      </p>
+      <HistoryView />
     </div>
   );
 }
