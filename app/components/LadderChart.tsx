@@ -14,6 +14,7 @@ import {
 } from "@/lib/chart";
 import type { LadderQuote } from "@/app/api/ladder/route";
 import { fetchWithTimeout } from "@/lib/net";
+import { useBoard } from "./BoardProvider";
 
 type Ladder = { state: "loading" | "ok" | "unavailable"; quotes: LadderQuote[] };
 
@@ -85,6 +86,7 @@ export function LadderChart({
   now: number;
   effectiveBps: number | null;
 }) {
+  const boardDown = useBoard().state?.kind === "error";
   const [boxRef, width] = useWidth<HTMLDivElement>(640);
   const ladder = useLadder(feed?.ticker || null);
 
@@ -220,7 +222,7 @@ export function LadderChart({
             <>
               <line x1={m.l} x2={m.l + pw} y1={m.t + ph} y2={m.t + ph} stroke="var(--hair)" />
               <text x={m.l + pw / 2} y={m.t + ph / 2} fontSize="12" fill="var(--text-3)" textAnchor="middle">
-                Reading devnet
+                {boardDown ? "Devnet is not answering. Trying again." : "Reading devnet"}
               </text>
             </>
           )}

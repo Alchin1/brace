@@ -16,7 +16,7 @@ export function HeroReading() {
     return (
       <p className="reading">
         <span className="dot none" aria-hidden />
-        <span>{state === null ? "Reading devnet" : "SOL feed not available"}</span>
+        <span>{state === null ? "Reading devnet" : state.kind === "error" ? "Live limits are not loading. Trying again." : "SOL feed not available"}</span>
       </p>
     );
   }
