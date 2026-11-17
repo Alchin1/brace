@@ -58,3 +58,28 @@ Findings:
 Checked and not issues: PDA seeds and stored bumps; admin `has_one` / relayer constraint; position `has_one = owner`; pool `has_one = usd_mint`; mint authority is the pool PDA; Feed create/update (system-owned prefund uses allocate+assign; program-owned accounts are deserialized); non-confident posts do not move spot, `max_ltv_bps`, `has_valid`, or `last_valid_at`; `vol_limit_bps` clamps to `[abs_floor, gov_max]`; stale decay is non-increasing and never above `min(max_ltv, gov_max)` or below `min(stale_floor, base)`; borrow/withdraw LTV rounds up, liquidation LTV floors and uses only `liq_threshold`; `pay_from_pool` keeps the pool rent-exempt. Math uses `checked_*` / `Option` and did not panic on the existing 5k-case property tests.
 
 F1 and F2 were fixed after this pass (tests first). F3–F7 are still open. The program id was switched to `Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC`.
+
+## Task 13 re-check prep (Grok, Nov 17, 05:47 Lagos)
+
+Not the final Task 13 gate (that needs the live UI and a fresh-browser demo path). This is a recorded baseline of everything that can be checked before the app lands. No program or Worker code was changed.
+
+Gates run on this prep (repo at 4c3b87d, program last changed in a7b7278 / 18ea875 deploy):
+
+- `anchor build --ignore-keys` exit 0. One `cargo-build-sbf` warning: crate types `cdylib` + `lib` preclude LTO. No rustc warnings.
+- `cargo test -p brace` 52 passed, 0 failed: 15 math, 12 adversarial, 1 fuzz (3,000 actions, 51.45s), 12 oracle, 9 pool, 3 worker_ix.
+- Worker `vitest run` 55/55; `tsc --noEmit` exit 0.
+
+Live devnet (Africa/Lagos, UTC+1):
+
+- Program `Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC` is executable; upgrade authority `FncbMMNBCFVv76GsPP8FJhkNGHkmAZfw7gnkkBj7SvdM`; data length 353,632 bytes; program account 1.7973294 SOL; last deployed in slot 523137960.
+- Relayer cron still on. `/health` `lastError` is null. All five Feeds were confident at 05:46:21 WAT (ages 15–16s): SOL implied vol 79.58% max LTV 70.00%; BTC 46.69% / 74.13%; ETH 80.64% / 69.86%; XRP 77.38% / 70.27%; ZEC 178.49% / 57.57%.
+- `/history` is Stream-ingested and current (SOL latest row ts 1794890781, tx `3YpGc4zEkjUFymJSBMQHvz3f`, matches the on-chain post). `/actions` is still `[]`.
+- CORS `access-control-allow-origin: *` is already on GET and OPTIONS for `/health`, `/preview`, `/history` and `/actions`. Claude's in-progress app reads Feed accounts from devnet RPC and does not call these endpoints yet; no response-shape change was made.
+
+Durability and funds:
+
+- No independent third public Solana devnet RPC accepted `getLatestBlockhash` from Cloudflare Worker IPs without a key. Official and `devnet.rpcpool.com` are 403; OnFinality often 429s; Tatum works (aliases share that provider); Uniblock 429s. `RPC_URLS` stays OnFinality + Tatum. A keyed QuickNode or Helius endpoint would be the real fallback and must not be committed.
+- Balances at 05:45:13 WAT: deployer 2.180840884 SOL, relayer 0.99359543 SOL, Phantom demo wallet 1 SOL. Packed five-asset posts cost 5,410 lamports; a split tick cost 10,420. Even at the split rate (~0.015 SOL/day) the relayer lasts about 66 days, and through Sat Nov 21, 23:59 WAT uses under 0.08 SOL.
+
+Pass 5 F3–F7 remain accepted risks (see above). They were not changed in this prep.
+
