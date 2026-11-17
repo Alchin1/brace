@@ -27,6 +27,9 @@ export function pubtickerUrl(pubticker: string): string {
   return `https://api.gemini.com/v1/pubticker/${pubticker}`;
 }
 
+/** Gemini calls give up after this long so a hung request cannot stall a cron tick. */
+export const GEMINI_TIMEOUT_MS = 8_000;
+
 export function expiryUnix(ev: GeminiEvent): number | null {
   if (!ev.expiryDate) return null;
   const ms = Date.parse(ev.expiryDate);
@@ -34,8 +37,8 @@ export function expiryUnix(ev: GeminiEvent): number | null {
   return Math.floor(ms / 1000);
 }
 
-export async function fetchEvents(fetchFn: typeof fetch = fetch): Promise<GeminiEvent[]> {
-  const res = await fetchFn(EVENTS_URL);
+export async function fetchEvents(fetchFn: typeof fetch = fetch, timeoutMs = GEMINI_TIMEOUT_MS): Promise<GeminiEvent[]> {
+  const res = await fetchFn(EVENTS_URL, { signal: AbortSignal.timeout(timeoutMs) });
   if (!res.ok) throw new Error(`Gemini events HTTP ${res.status}`);
   const json = (await res.json()) as GeminiEventsResponse | GeminiEvent[];
   const data = Array.isArray(json) ? json : json.data;
@@ -44,7 +47,7 @@ export async function fetchEvents(fetchFn: typeof fetch = fetch): Promise<Gemini
 }
 
 export async function fetchSpotE6(asset: Asset, fetchFn: typeof fetch = fetch): Promise<bigint> {
-  const res = await fetchFn(pubtickerUrl(asset.pubticker));
+  const res = await fetchFn(pubtickerUrl(asset.pubticker), { signal: AbortSignal.timeout(GEMINI_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`Gemini pubticker ${asset.pubticker} HTTP ${res.status}`);
   const json = (await res.json()) as { last?: string };
   const spot = decimalToScaled(json.last, 6);

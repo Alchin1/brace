@@ -59,8 +59,9 @@ export type HealthReport = {
 export interface BraceStore {
   upsertPost(row: PostRow): Promise<void>;
   upsertAction(row: ActionRow): Promise<void>;
-  listPosts(asset: string | undefined, since: number | undefined): Promise<PostRow[]>;
-  listActions(since: number | undefined): Promise<ActionRow[]>;
+  /** Oldest first. With since: the first `limit` rows from since. Without: the newest `limit` rows. */
+  listPosts(asset: string | undefined, since: number | undefined, limit?: number): Promise<PostRow[]>;
+  listActions(since: number | undefined, limit?: number): Promise<ActionRow[]>;
   saveRelayerRun(state: RelayerRunState): Promise<void>;
   loadRelayerRun(): Promise<RelayerRunState>;
   latestPostTsByAsset(): Promise<Record<string, number>>;
@@ -203,7 +204,7 @@ export class D1Store implements BraceStore {
       .run();
   }
 
-  async listPosts(asset: string | undefined, since: number | undefined): Promise<PostRow[]> {
+  async listPosts(asset: string | undefined, since: number | undefined, limit?: number): Promise<PostRow[]> {
     const clauses: string[] = [];
     const params: (string | number)[] = [];
     if (asset) {
@@ -215,21 +216,37 @@ export class D1Store implements BraceStore {
       params.push(since);
     }
     const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-    const stmt = this.db
-      .prepare(`SELECT * FROM posts ${where} ORDER BY ts ASC, asset ASC, tx ASC`)
-      .bind(...params);
-    const res = await stmt.all<PostRow>();
+    const asc = "ORDER BY ts ASC, asset ASC, tx ASC";
+    let sql = `SELECT * FROM posts ${where} ${asc}`;
+    if (limit !== undefined) {
+      sql =
+        since !== undefined
+          ? `SELECT * FROM posts ${where} ${asc} LIMIT ?`
+          : `SELECT * FROM (SELECT * FROM posts ${where} ORDER BY ts DESC, asset DESC, tx DESC LIMIT ?) ${asc}`;
+      params.push(limit);
+    }
+    const res = await this.db.prepare(sql).bind(...params).all<PostRow>();
     return res.results ?? [];
   }
 
-  async listActions(since: number | undefined): Promise<ActionRow[]> {
-    const stmt =
-      since !== undefined
-        ? this.db
-            .prepare(`SELECT * FROM actions WHERE ts >= ? ORDER BY ts ASC, kind ASC, tx ASC`)
-            .bind(since)
-        : this.db.prepare(`SELECT * FROM actions ORDER BY ts ASC, kind ASC, tx ASC`);
-    const res = await stmt.all<ActionRow>();
+  async listActions(since: number | undefined, limit?: number): Promise<ActionRow[]> {
+    const asc = "ORDER BY ts ASC, kind ASC, tx ASC";
+    const params: number[] = [];
+    let sql: string;
+    if (since !== undefined) {
+      sql = `SELECT * FROM actions WHERE ts >= ? ${asc}`;
+      params.push(since);
+      if (limit !== undefined) {
+        sql += " LIMIT ?";
+        params.push(limit);
+      }
+    } else if (limit !== undefined) {
+      sql = `SELECT * FROM (SELECT * FROM actions ORDER BY ts DESC, kind DESC, tx DESC LIMIT ?) ${asc}`;
+      params.push(limit);
+    } else {
+      sql = `SELECT * FROM actions ${asc}`;
+    }
+    const res = await this.db.prepare(sql).bind(...params).all<ActionRow>();
     return (res.results ?? []).map((row) => ({
       ...row,
       limit: (row as ActionRow & { limit?: number }).limit ?? (row as { LIMIT?: number }).LIMIT ?? null,

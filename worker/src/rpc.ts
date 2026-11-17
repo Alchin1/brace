@@ -76,10 +76,14 @@ export async function withRpcFallback<T>(
   throw last instanceof Error ? last : new Error(String(last));
 }
 
+/** RPC calls give up after this long; the timeout error is retryable and fails over to the next URL. */
+export const RPC_TIMEOUT_MS = 10_000;
+
 /** Wrap fetch so HTTP 429/5xx become retryable errors before web3.js parses the body. */
 export function rpcAwareFetch(base: typeof fetch = fetch): typeof fetch {
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const res = await base(input, init);
+    const withTimeout: RequestInit = init?.signal ? init : { ...init, signal: AbortSignal.timeout(RPC_TIMEOUT_MS) };
+    const res = await base(input, withTimeout);
     if (res.status === 429 || res.status === 502 || res.status === 503 || res.status === 504) {
       const err = new Error(`rpc http ${res.status}`) as Error & { status: number; retryAfterMs?: number };
       err.status = res.status;

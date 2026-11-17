@@ -4,7 +4,7 @@ import { ASSETS, type Asset } from "./assets.ts";
 import { checkSinkSecret, readJsonBody, SINK_SECRET_HEADER, verifyQuickNodeSignature } from "./auth.ts";
 import { encodePostQuotes, toHex } from "./encode.ts";
 import { fetchEvents, fetchSpotE6 } from "./gemini.ts";
-import { actionsResponse, historyResponse, parseSince } from "./history.ts";
+import { actionsResponse, historyResponse, parseLimit, parseSinceStrict } from "./history.ts";
 import { uniqueSigs, applySignatureStatuses, type PendingSig } from "./confirm.ts";
 import { parseRpcUrls, rotateUrls, rpcAwareFetch, withRpcFallback } from "./rpc.ts";
 import { selectLadder } from "./select.ts";
@@ -30,6 +30,10 @@ const state: { lastRun: string | null; lastSigs: Record<string, string> } = {
   lastRun: null,
   lastSigs: {},
 };
+
+function unknownAssetMessage(symbol: string): string {
+  return `unknown asset ${symbol.slice(0, 16)}; use one of ${ASSETS.map((a) => a.symbol).join(", ")}`;
+}
 
 function assetBySymbol(symbol: string): Asset | undefined {
   return ASSETS.find((a) => a.symbol === symbol.toUpperCase());
@@ -290,7 +294,8 @@ export default {
       return corsJson(await healthReport(storeFromEnv(env), Math.floor(Date.now() / 1000)));
     }
     if (url.pathname === "/preview") {
-      const symbol = url.searchParams.get("asset") || "SOL";
+      const symbol = (url.searchParams.get("asset") || "SOL").toUpperCase();
+      if (!assetBySymbol(symbol)) return corsJson({ error: unknownAssetMessage(symbol) }, 400);
       try {
         const body = await previewAsset(symbol, Math.floor(Date.now() / 1000));
         return corsJson(body);
@@ -302,15 +307,23 @@ export default {
     if (url.pathname === "/history" && request.method === "GET") {
       const store = storeFromEnv(env);
       if (!store) return corsJson({ error: "history store is not configured" }, 503);
-      const asset = url.searchParams.get("asset") || undefined;
-      const since = parseSince(url.searchParams.get("since"));
-      return corsJson(await historyResponse(store, asset, since));
+      const rawAsset = url.searchParams.get("asset");
+      const asset = rawAsset ? rawAsset.toUpperCase() : undefined;
+      if (asset && !assetBySymbol(asset)) return corsJson({ error: unknownAssetMessage(asset) }, 400);
+      const since = parseSinceStrict(url.searchParams.get("since"));
+      if (!since.ok) return corsJson({ error: since.error }, 400);
+      const limit = parseLimit(url.searchParams.get("limit"));
+      if (!limit.ok) return corsJson({ error: limit.error }, 400);
+      return corsJson(await historyResponse(store, asset, since.value, limit.value));
     }
     if (url.pathname === "/actions" && request.method === "GET") {
       const store = storeFromEnv(env);
       if (!store) return corsJson({ error: "history store is not configured" }, 503);
-      const since = parseSince(url.searchParams.get("since"));
-      return corsJson(await actionsResponse(store, since));
+      const since = parseSinceStrict(url.searchParams.get("since"));
+      if (!since.ok) return corsJson({ error: since.error }, 400);
+      const limit = parseLimit(url.searchParams.get("limit"));
+      if (!limit.ok) return corsJson({ error: limit.error }, 400);
+      return corsJson(await actionsResponse(store, since.value, limit.value));
     }
     if (url.pathname === "/streams" && request.method === "POST") {
       if (!checkSinkSecret(request.headers.get(SINK_SECRET_HEADER), env.STREAMS_SINK_SECRET)) {

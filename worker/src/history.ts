@@ -64,23 +64,56 @@ export function toActionRecord(row: ActionRow): ActionRecord {
   };
 }
 
+/** Most rows one /history or /actions response returns (about 2 MB). Page forward with since=. */
+export const MAX_ROWS = 10_000;
+
+/**
+ * Rows are always oldest first. With since, the oldest `limit` rows at or after since (page forward
+ * by passing the last ts as the next since). Without since, the newest `limit` rows.
+ */
+function window<T>(rows: T[], since: number | undefined, limit: number): T[] {
+  if (rows.length <= limit) return rows;
+  return since !== undefined ? rows.slice(0, limit) : rows.slice(rows.length - limit);
+}
+
 export async function historyResponse(
   store: BraceStore,
   asset: string | undefined,
   since: number | undefined,
+  limit: number = MAX_ROWS,
 ): Promise<HistoryRecord[]> {
-  const rows = await store.listPosts(asset, since);
-  return rows.map(toHistoryRecord);
+  const rows = await store.listPosts(asset, since, limit);
+  return window(rows, since, limit).map(toHistoryRecord);
 }
 
-export async function actionsResponse(store: BraceStore, since: number | undefined): Promise<ActionRecord[]> {
-  const rows = await store.listActions(since);
-  return rows.map(toActionRecord);
+export async function actionsResponse(
+  store: BraceStore,
+  since: number | undefined,
+  limit: number = MAX_ROWS,
+): Promise<ActionRecord[]> {
+  const rows = await store.listActions(since, limit);
+  return window(rows, since, limit).map(toActionRecord);
 }
 
+/** Lenient parse kept for callers that only need a number or nothing. */
 export function parseSince(raw: string | null): number | undefined {
-  if (raw == null || raw === "") return undefined;
+  const r = parseSinceStrict(raw);
+  return r.ok ? r.value : undefined;
+}
+
+export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
+
+/** since must be empty/absent or non-negative unix seconds. */
+export function parseSinceStrict(raw: string | null): Parsed<number | undefined> {
+  if (raw == null || raw === "") return { ok: true, value: undefined };
+  if (!/^\d{1,12}(\.\d+)?$/.test(raw.trim())) return { ok: false, error: "since must be unix seconds (a non-negative number)" };
+  return { ok: true, value: Math.trunc(Number(raw)) };
+}
+
+export function parseLimit(raw: string | null): Parsed<number> {
+  if (raw == null || raw === "") return { ok: true, value: MAX_ROWS };
+  if (!/^\d{1,6}$/.test(raw.trim())) return { ok: false, error: `limit must be a whole number from 1 to ${MAX_ROWS}` };
   const n = Number(raw);
-  if (!Number.isFinite(n)) return undefined;
-  return Math.trunc(n);
+  if (n < 1 || n > MAX_ROWS) return { ok: false, error: `limit must be a whole number from 1 to ${MAX_ROWS}` };
+  return { ok: true, value: n };
 }
