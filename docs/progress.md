@@ -29,3 +29,5 @@ Next up: Task 7 devnet deploy (needs funded keys), then Task 8 relayer Worker.
 - Nov 17, 04:02 Lagos: Grok ran the baseline gate on main (47/47 tests pass) and completed review pass 5. No program code changes. Findings in docs/reviews.md.
 
 - Nov 17, 04:08 Lagos: Grok fixed Pass 5 F1 (zero-debt withdraw without a SOL Feed) and F2 (initialize rejects the default relayer), switched the program id to Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC, and re-ran the gate: 49/49 tests pass.
+
+- Nov 17, 04:08 Lagos: Devnet setup script written at scripts/devnet-setup.mjs (dry-run by default; not executed). Deployer and relayer balances on devnet are both 0 SOL; program is not deployed.

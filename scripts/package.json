@@ -1,0 +1,10 @@
+{
+  "name": "brace-devnet-setup",
+  "private": true,
+  "type": "module",
+  "description": "One-shot devnet deploy + initialize + init_pool + first SOL post. No key material in this package.",
+  "dependencies": {
+    "@coral-xyz/anchor": "1.2.2",
+    "@solana/web3.js": "^1.98.4"
+  }
+}
