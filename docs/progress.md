@@ -12,13 +12,13 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 6 | Reviews | passes 1-5 done; F1 and F2 fixed; program id switched to Frv6CVJK… | 49/49 tests (15 math, 12 adversarial, 1 fuzz, 12 oracle, 9 pool); F1/F2 marked in docs/reviews.md | (this commit) |
 | 7 | Devnet deploy | in progress (Grok) | | |
 | 8 | Relayer Worker | staged on Cloudflare (Grok); cron pending Task 7 | https://brace-relayer.ohjaye0.workers.dev/health 200 {"ok":true,"lastRun":null,"lastSigs":{}}; vars PROGRAM_ID, RPC_URL; secret RELAYER_SECRET set; cron not enabled | (this commit) |
-| 9 | Streams + history | in progress (Grok); Stream itself gated on QuickNode key | | |
+| 9 | Streams + history | sink + /history staged on Cloudflare (Grok); Stream itself gated on QuickNode key | worker vitest 32/32, tsc --noEmit exit 0; live GET /history?asset=SOL and /actions return []; POST /streams without x-brace-secret is 401; cron still off | (this commit) |
 | 10 | README | in progress (Claude, branch claude/readme) | | |
 | 11 | Risk board | claimed (Claude, after README; mockup first) | | |
 | 12 | Borrow flow | claimed (Claude, after risk board) | | |
 | 13 | Re-check | pending | | |
 
-Next up: Task 7 in progress (Grok): keys funded (deployer 5 SOL, relayer 1 SOL); build, test, then devnet-setup.mjs. Claude has claimed tasks 10–12. Task 9 in progress (Grok, Stream gated on QuickNode key).
+Next up: Task 7 in progress (Grok): keys funded (deployer 5 SOL, relayer 1 SOL); build, test, then devnet-setup.mjs. After the program is on devnet, create the QuickNode Stream (settings in worker/filters/brace-program.js and worker/README.md) and then enable the relayer cron. Claude has claimed tasks 10–12.
 
 ## Session log
 
@@ -37,3 +37,5 @@ Next up: Task 7 in progress (Grok): keys funded (deployer 5 SOL, relayer 1 SOL);
 - Nov 17, 04:33 Lagos: Grok staged brace-relayer on Cloudflare via the Workers scripts API (no API token / no wrangler deploy). workers.dev URL https://brace-relayer.ohjaye0.workers.dev ; /health returns {"ok":true,"lastRun":null,"lastSigs":{}}. Vars PROGRAM_ID and RPC_URL set; secret RELAYER_SECRET set. Minute cron is not enabled until Task 7.
 
 - Nov 17, 04:43 Lagos: Grok claimed Task 7. Deployer FncbMMNB… has 5 SOL and relayer BSzBkn… has 1 SOL on devnet; program not yet deployed. Phantom demo wallet still at 0 SOL.
+
+- Nov 17, 04:46 Lagos: Grok staged the Streams sink and /history API on brace-relayer (same Worker, so one deploy). D1 database brace (117e5eff-90f6-415e-80cd-5ba350ad47dc) created; /history?asset=SOL and /actions return []. Cron still off. QuickNode Stream is not created yet (needs a key); filter and destination settings are in worker/filters/brace-program.js.

@@ -1,15 +1,24 @@
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import bs58 from "bs58";
 import { ASSETS, type Asset } from "./assets.ts";
+import { checkSinkSecret, readJsonBody, SINK_SECRET_HEADER, verifyQuickNodeSignature } from "./auth.ts";
 import { encodePostQuotes, toHex } from "./encode.ts";
 import { fetchEvents, fetchSpotE6 } from "./gemini.ts";
+import { actionsResponse, historyResponse, parseSince } from "./history.ts";
 import { selectLadder } from "./select.ts";
+import { D1Store, type BraceStore } from "./store.ts";
+import { ingestPayload } from "./streams.ts";
 import { buildPostQuotesTransaction } from "./tx.ts";
 
 export type Env = {
   PROGRAM_ID: string;
   RPC_URL?: string;
   RELAYER_SECRET?: string;
+  STREAMS_SINK_SECRET?: string;
+  QN_SECURITY_TOKEN?: string;
+  DB?: D1Database;
+  /** Test-only in-memory store. */
+  __store?: BraceStore;
 };
 
 type RunResult = { asset: string; ticker?: string; sig?: string; skipped?: string; error?: string };
@@ -102,21 +111,83 @@ export async function runOnce(env: Env, nowSeconds: number, fetchFn: typeof fetc
   return results;
 }
 
+function corsHeaders(): Record<string, string> {
+  return {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET, OPTIONS",
+    "access-control-allow-headers": "content-type",
+  };
+}
+
+function corsJson(body: unknown, status = 200): Response {
+  return Response.json(body, { status, headers: corsHeaders() });
+}
+
+function storeFromEnv(env: Env): BraceStore | null {
+  if (env.__store) return env.__store;
+  if (env.DB) return new D1Store(env.DB);
+  return null;
+}
+
 export default {
-  async fetch(request: Request, _env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === "OPTIONS" && (url.pathname === "/history" || url.pathname === "/actions" || url.pathname === "/health")) {
+      return new Response(null, { status: 204, headers: corsHeaders() });
+    }
     if (url.pathname === "/health") {
-      return Response.json({ ok: true, lastRun: state.lastRun, lastSigs: state.lastSigs });
+      return corsJson({ ok: true, lastRun: state.lastRun, lastSigs: state.lastSigs });
     }
     if (url.pathname === "/preview") {
       const symbol = url.searchParams.get("asset") || "SOL";
       try {
         const body = await previewAsset(symbol, Math.floor(Date.now() / 1000));
-        return Response.json(body);
+        return corsJson(body);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        return Response.json({ error: message }, { status: 502 });
+        return corsJson({ error: message }, 502);
       }
+    }
+    if (url.pathname === "/history" && request.method === "GET") {
+      const store = storeFromEnv(env);
+      if (!store) return corsJson({ error: "history store is not configured" }, 503);
+      const asset = url.searchParams.get("asset") || undefined;
+      const since = parseSince(url.searchParams.get("since"));
+      return corsJson(await historyResponse(store, asset, since));
+    }
+    if (url.pathname === "/actions" && request.method === "GET") {
+      const store = storeFromEnv(env);
+      if (!store) return corsJson({ error: "history store is not configured" }, 503);
+      const since = parseSince(url.searchParams.get("since"));
+      return corsJson(await actionsResponse(store, since));
+    }
+    if (url.pathname === "/streams" && request.method === "POST") {
+      if (!checkSinkSecret(request.headers.get(SINK_SECRET_HEADER), env.STREAMS_SINK_SECRET)) {
+        return Response.json({ error: "unauthorized" }, { status: 401 });
+      }
+      const bodyText = await readJsonBody(request);
+      if (env.QN_SECURITY_TOKEN) {
+        const ok = await verifyQuickNodeSignature({
+          nonce: request.headers.get("x-qn-nonce") || "",
+          timestamp: request.headers.get("x-qn-timestamp") || "",
+          body: bodyText,
+          signature: request.headers.get("x-qn-signature") || "",
+          securityToken: env.QN_SECURITY_TOKEN,
+        });
+        if (!ok) return Response.json({ error: "invalid signature" }, { status: 401 });
+      }
+      const store = storeFromEnv(env);
+      if (!store) return Response.json({ error: "history store is not configured" }, { status: 503 });
+      let payload: unknown = {};
+      if (bodyText.length) {
+        try {
+          payload = JSON.parse(bodyText);
+        } catch {
+          return Response.json({ error: "invalid json" }, { status: 400 });
+        }
+      }
+      const result = await ingestPayload(store, payload);
+      return Response.json({ ok: true, ...result });
     }
     return new Response("not found", { status: 404 });
   },

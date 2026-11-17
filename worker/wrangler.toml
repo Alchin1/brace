@@ -16,3 +16,9 @@ RPC_URL = "https://api.devnet.solana.com"
 # in scripts/cf-deploy-relayer.mjs.
 # [triggers]
 # crons = ["* * * * *"]
+
+# D1 is used by /streams, /history and /actions. Cron stays off until Task 7.
+[[d1_databases]]
+binding = "DB"
+database_name = "brace"
+database_id = "117e5eff-90f6-415e-80cd-5ba350ad47dc"

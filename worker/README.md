@@ -2,7 +2,7 @@
 
 Cloudflare Worker that posts Gemini "price X or above" ladders to the Brace program on Solana devnet every minute. The program, not this Worker, does the implied-vol fit.
 
-Do not put keys, seeds or tokens in this folder. `RELAYER_SECRET` is a Wrangler secret.
+Do not put keys, seeds or tokens in this folder. `RELAYER_SECRET` and `STREAMS_SINK_SECRET` are Worker secrets, never committed.
 
 ## Test (offline, uses captured Gemini fixtures)
 
@@ -21,8 +21,8 @@ Account ID (not secret) is in `wrangler.toml`. There is no Cloudflare API token 
 
 1. `node ../scripts/cf-deploy-relayer.mjs` — local minify bundle only (dry-run).
 2. Upload `dist/index.js` as Worker `brace-relayer` with vars `PROGRAM_ID` and `RPC_URL`, compatibility_date `2026-11-17`. Do not attach cron.
-3. PUT the `RELAYER_SECRET` secret (base58 64-byte relayer key) via the secrets API. Never commit it.
-4. Enable the workers.dev subdomain for the script.
+3. PUT secrets via the secrets API, never commit them: `RELAYER_SECRET` (base58 64-byte relayer key) and `STREAMS_SINK_SECRET` (shared header for `/streams`). Optional later: `QN_SECURITY_TOKEN` for QuickNode HMAC verification.
+4. Bind D1 database `brace` as `DB` (id in wrangler.toml). Enable the workers.dev subdomain for the script.
 
 Do not enable the minute cron until Task 7 (program on devnet and relayer funded). The exact later call is in `scripts/cf-deploy-relayer.mjs`.
 
@@ -32,6 +32,11 @@ Optional later: set `RPC_URL` to a QuickNode (or other) devnet URL.
 
 - `GET /health` → `{ ok, lastRun, lastSigs }` (in-memory; resets if the isolate is recycled).
 - `GET /preview?asset=SOL` → selected ladder and encoded `post_quotes` bytes, no signing. Useful from a phone.
+- `POST /streams` → QuickNode Streams webhook sink. Requires header `x-brace-secret` matching `STREAMS_SINK_SECRET`. If `QN_SECURITY_TOKEN` is set, also verifies `X-QN-Nonce` + `X-QN-Timestamp` + body against `X-QN-Signature` (HMAC-SHA256, decompressed JSON).
+- `GET /history?asset=SOL&since=<unix>` → accuracy-tracker contract from docs/spec.md (JSON array, oldest first). CORS `*`.
+- `GET /actions?since=<unix>` → blocked/allowed feed (kind, owner, amount, ltv, limit, ok, tx, error). CORS `*`.
+
+The Stream is not created in this repo (needs a QuickNode key). Filter to paste: `filters/brace-program.js`.
 
 ## Cron
 

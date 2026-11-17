@@ -14,7 +14,9 @@
  * Expected URL: https://brace-relayer.ohjaye0.workers.dev
  *
  * Vars set on upload: PROGRAM_ID, RPC_URL (from wrangler.toml).
- * Secret set separately: RELAYER_SECRET (base58 64-byte relayer key).
+ * D1 binding: DB → database brace (117e5eff-90f6-415e-80cd-5ba350ad47dc).
+ * Secrets set separately: RELAYER_SECRET, STREAMS_SINK_SECRET. Never print or commit them.
+ * Do not attach cron triggers on upload.
  *
  * PENDING after Task 7 (program on devnet, relayer funded) — do not run now:
  *
