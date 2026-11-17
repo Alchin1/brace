@@ -1,72 +1,114 @@
 # Brace
 
-**For judges:** TBD-post-build: open the live risk board (no wallet), then try a borrow above SOL's limit and watch Solana reject it.
+**For judges:** Open the [live risk board](https://brace-ivory.vercel.app) (no wallet). Then try a borrow above SOL's limit and watch Solana reject it. A verified over-limit attempt is [this rejected transaction](https://explorer.solana.com/tx/59uvMm48LV248sXSnvTV9wb8ZpVZmB8Q3ffiAsq3NU97wjU3wuSGD4EBSihWYpm1qZhrQNATA5rz5v1GWH6RVHnP?cluster=devnet). Steps are in [Try It](#try-it).
 
-<!-- TBD-post-build: one narrow screenshot of the live risk board, docs/images/board.png, ~260px, centered -->
+<p align="center">
+  <img src="docs/images/board.png" width="260" alt="Brace risk board on a phone: the heading Lending limits that move before the market does, SOL's live implied volatility and borrow limit, and Gemini's price-or-above ladder.">
+</p>
 
 **Gemini's prediction markets, turned into an onchain volatility oracle for Solana lending.**
 
 Lending markets set loan-to-value limits by governance vote and rarely change them, so limits are still the calm-week numbers when volatility arrives. Brace reads Gemini's live "price X or above" ladders, computes implied volatility onchain on Solana, and tightens borrowing limits before the move. Limits never go above the 75% governance cap, stale data only ever lowers them, and odds never liquidate anyone.
 
-- [Try it](#try-it) (TBD-post-build: live app link)
-- [Proof it's real](#proof-its-real): program on devnet, live feeds, tests
-- [Tracks](#tracks): DeFi & Onchain Apps, Best use of Solana, Gemini Prediction Markets, QuickNode Streams
+| What | Time and what it needs |
+|---|---|
+| [Live board](https://brace-ivory.vercel.app) | About a minute. No wallet. |
+| [Borrow demo](https://brace-ivory.vercel.app/borrow) | A few minutes. Phantom with Testnet Mode on Solana Devnet. |
+| [History page](https://brace-ivory.vercel.app/history) and [live `/history` feed](https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL) | Instant. No wallet. |
+| One-command check | A few minutes (the fuzz test is about a minute). `anchor build && cargo test -p brace`, then `cd app && npx vitest run`. Rust 1.89 and Anchor 1.2.2 for the program. |
+| Film of the demo | Placeholder: the film link will be added here once it is recorded (B7). |
+| [Tracks](#tracks) | DeFi & Onchain Apps, Best use of Solana, Gemini Prediction Markets, QuickNode Streams. |
+
+- [Try it](#try-it)
+- [Proof it's real](#proof-its-real)
+- [How it compares](#how-it-compares)
 - [How Gemini, Solana and QuickNode are used](#how-the-sponsor-tech-is-used)
 - [Built during UBC 2026](#built-during-ubc-2026)
 
 ## Try It
 
-TBD-post-build: written from the real on-screen words once the app is live. Planned shape:
+1. Open the [live board](https://brace-ivory.vercel.app). No wallet, no signup. You should see the heading **Lending limits that move before the market does**, the SOL chart **what Gemini traders expect**, and **Every asset, every minute** with live limits for SOL, BTC, ETH, XRP and ZEC.
+2. Tap **Try a borrow**. In Phantom, turn on Testnet Mode and select Solana Devnet. Tap **Connect wallet**, then **Open position**, then **Deposit** 0.5 SOL under the heading **Deposit SOL**.
+3. Slide the borrow amount past the live limit until the page says the borrow is **Over the live limit**, then tap **Submit anyway**. Phantom may show a simulation warning such as "Failed to simulate" / "Phantom blocked this request". Confirm past it. The program should reject the transaction onchain with `RiskTightened` (error 6005). A verified run at 10:23 Africa/Lagos on Nov 17, 2026 logged `brace blocked ltv=7208 limit=6954`: [rejected borrow](https://explorer.solana.com/tx/59uvMm48LV248sXSnvTV9wb8ZpVZmB8Q3ffiAsq3NU97wjU3wuSGD4EBSihWYpm1qZhrQNATA5rz5v1GWH6RVHnP?cluster=devnet).
+4. Lower the amount under the limit and tap **Borrow**. A verified run at 10:24 Africa/Lagos borrowed 8.30 test USD and logged `brace borrow ... ltv=2303 limit=6952`: [accepted borrow](https://explorer.solana.com/tx/42EzMtDmmcengifcyTXjLY2BT3K1s8XCdVMEG3usorpbGiYEL5KgFHyBpWm9PyVi3Tymjg34PKqqmeCSQeJgehSf?cluster=devnet). Both attempts are already in the [Streams `/actions` feed](https://brace-relayer.ohjaye0.workers.dev/actions) and should appear on the [History](https://brace-ivory.vercel.app/history) page.
 
-1. Open the live board. No wallet, no signup. See implied volatility and the max LTV for SOL, BTC, ETH, XRP and ZEC, each updated within the last minute, with an explorer link to the transaction that set it.
-2. With a devnet wallet (Phantom, Testnet Mode, Solana Devnet), deposit SOL and borrow test USD above SOL's limit. The transaction fails onchain with `RiskTightened`.
-3. Borrow under the limit. It goes through. Both attempts appear in the history feed.
-
-Check the code in one command (Rust and the Anchor CLI 1.2.2 required):
+Check the code in these commands (Rust 1.89 and Anchor CLI 1.2.2 for the program):
 
 ```bash
 anchor build && cargo test -p brace
+cd app && npx vitest run
+cd worker && npx vitest run
 ```
 
-Expected: 52 tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions, 12 oracle, 9 pool, 3 relayer-encoding). The fuzz run takes about a minute.
+Expected, from a fresh run on Nov 17, 2026 (Africa/Lagos): 52 Rust tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions in 48.43s, 12 oracle, 9 pool, 3 relayer-encoding); 60 app tests; 55 worker tests.
 
 ## Proof It's Real
 
-- **Program on Solana devnet:** `Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC`. TBD-post-build: explorer link once deployed.
-- **Live posts:** TBD-post-build: link to a `post_quotes` transaction whose logs show `brace SOL conf=1 sigma_bps=… max_ltv=…`.
-- **History from QuickNode Streams:** TBD-post-build: `/history?asset=SOL` URL.
-- **The math works on real Gemini data.** Captured ladders are test fixtures: a SOL ladder from Nov 16, 2026 fits onchain to 82.7% implied volatility and a 69.6% limit, matching an independent float reference ([`programs/brace/tests/oracle.rs`](programs/brace/tests/oracle.rs), [`src/math.rs`](programs/brace/src/math.rs) unit tests).
+- **Program on Solana devnet:** [`Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC`](https://explorer.solana.com/address/Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC?cluster=devnet).
+- **Live posts:** a packed `post_quotes` transaction whose logs include `brace SOL conf=1 sigma_bps=8438 max_ltv=6939` (plus BTC, ETH and XRP in the same transaction): [Explorer](https://explorer.solana.com/tx/5cwQA5BzCHPZPJTDbs6bRiPX649mQr8v4vj8C2kXusPayhZk6pL5mmMC9nJtuKHqzw5ad2mhjHiFrgwNjRajcgNB?cluster=devnet). That SOL post used 40,674 compute units.
+- **A borrow the program rejected**, and one it accepted, both on Nov 17, 2026 (Africa/Lagos):
+  - Open position: [Explorer](https://explorer.solana.com/tx/2khAyi6PQUAYJkByPZeYw3YP2EfTwmE1eq2GHVXd6oCoG3XTa83viTdiEMByHyTVXnP7Ppijw19qiyA7vtpJDBh4?cluster=devnet) (10:22).
+  - Deposit 0.5 SOL: [Explorer](https://explorer.solana.com/tx/3zSophyyijMXYDmNcQ4Bju39AyT8id8FLfGkSjZEf3yzfRd2Vix2yUb3fgZ2t68EUz2tY85thYkeVNvzc4dy4A1E?cluster=devnet) (10:23).
+  - Rejected over-limit borrow, `RiskTightened` 6005, log `brace blocked ltv=7208 limit=6954`: [Explorer](https://explorer.solana.com/tx/59uvMm48LV248sXSnvTV9wb8ZpVZmB8Q3ffiAsq3NU97wjU3wuSGD4EBSihWYpm1qZhrQNATA5rz5v1GWH6RVHnP?cluster=devnet) (10:23).
+  - Accepted borrow of 8.30 test USD, log `brace borrow ... ltv=2303 limit=6952`: [Explorer](https://explorer.solana.com/tx/42EzMtDmmcengifcyTXjLY2BT3K1s8XCdVMEG3usorpbGiYEL5KgFHyBpWm9PyVi3Tymjg34PKqqmeCSQeJgehSf?cluster=devnet) (10:24).
+- **History from QuickNode Streams:** [https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL](https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL). The [History page](https://brace-ivory.vercel.app/history) charts the last 24 hours of SOL's effective limit and implied volatility from that feed, and lists blocked and allowed borrows from [`/actions`](https://brace-relayer.ohjaye0.workers.dev/actions).
+- **The math works on real Gemini data.** A captured SOL ladder used as a test fixture fits onchain to 82.7% implied volatility and a 69.6% limit (`sigma_bps` 8272, `max_ltv_bps` 6960), matching an independent float reference ([`programs/brace/tests/oracle.rs`](programs/brace/tests/oracle.rs), [`src/math.rs`](programs/brace/src/math.rs) unit tests).
 - **Reviewed five times** by separate reviewers, findings fixed with a test each ([`docs/reviews.md`](docs/reviews.md)).
+- **Accuracy this week:** Placeholder: Alchin's 1-hour band hit rate will be added here once the tracker has a measured number. No figure yet.
 
 ## What's New Here
 
 **Prediction markets used as risk infrastructure for the rest of DeFi, not as another betting app.**
 
-Forward-looking volatility feeds today come from options markets, and Deribit, the largest crypto options venue, lists options on 7 coins (BTC, ETH, SOL, HYPE, XRP, AVAX, TRX; checked Nov 15, 2026). ZEC has no crypto options market. Gemini lists daily and hourly price ladders on it anyway.
+Forward-looking volatility feeds today usually come from options markets. Gemini already lists daily and hourly price ladders on assets the live board posts, including ZEC.
 
 - **The math runs onchain.** The relayer posts Gemini's raw bid and ask quotes; the program does the fit with integers only (probit lookup table, least squares, square roots). The relayer can't fake a volatility number.
 - **Fail safe, not fail open.** Thin, stale or inconsistent data never loosens a limit: it holds, then steps down 2.5 points every 5 minutes. After an hour with no fresh data, borrowing and liquidation stop.
 - **Odds never liquidate.** Liquidation uses only the fixed 80% threshold.
 - **Real-time history.** QuickNode Streams delivers every program transaction, including failed borrows, to the history feed.
 
+## How It Compares
+
+Sources were fetched on Nov 17, 2026. Each competitor cell is as that vendor's cited page describes the product on that date. **Not stated** means the cited page does not say.
+
+| Product | Data source | Forward-looking? | Assets covered | Update cadence | Where the math runs | Cost and sign-in | Open source |
+|---|---|---|---|---|---|---|---|
+| **Brace** (this project) | Gemini public "price X or above" ladders and pubticker spots, posted onchain. Live board: [brace-ivory.vercel.app](https://brace-ivory.vercel.app). | Yes. Implied volatility from traded probabilities of price at expiry. | The live demo posts SOL, BTC, ETH, XRP and ZEC. | Relayer cron every minute. | Onchain in the Solana program. | Public Gemini market data. The board needs no wallet or signup. Borrowing uses a Solana devnet wallet. | Yes, [MIT](LICENSE). |
+| [Kamino](https://docs.kamino.com/curators/markets/risk-parameters) (curator-set LTVs) | Curator-chosen risk parameters, "tuned to each asset based on its volatility profile, liquidity, and the reliability of its price oracle." Not described as a live implied-vol oracle. | Not stated as using implied volatility. `loanToValuePct` is curator-set; the liquidation threshold is separate. | Described by market class (stables, majors such as SOL/BTC/ETH, LSTs, long-tail). A complete inventory is not stated on this page. The page uses 70-80% LTV as a reference for majors. | Not stated as automatic. Parameters are configured by curators. | Not stated as an onchain volatility fit. Parameters are set by curators and then enforced by the market. | Not stated on this page. | Not stated on this page. |
+| [Jupiter Lend](https://docs.jup.ag/user-docs/earn/lend/borrow/introduction) | Each vault has its own LTV. Prices come from Chainlink and Pyth, or from an exchange rate for pegged and yield-bearing assets. | Not stated. | Examples on this page include SOL (75% LTV), mSOL, JitoSOL and stables. A complete inventory is not stated. | LTV is a per-vault parameter. Position health is described as updating in real time via oracles. The cadence of LTV changes is not stated. | Not stated. | The page says the protocol does not charge additional fees on top of interest. Sign-in requirements are not stated on this page. | Not stated on this page. |
+| [Gauntlet](https://www.gauntlet.xyz/resources/gauntlets-parameter-recommendation-methodology) | Agent-based simulations using market, borrower and liquidity data, then parameter recommendations. | The page describes simulations as forward-looking "what if" scenarios. It does not describe a prediction-market or options implied-vol feed. | Not stated (the page refers to protocols they service). | "Thousands of simulation instances daily." Recommendations go through manual QA. The page says there is no stable setting and these parameters are managed dynamically. | Offchain simulations. Not stated as running the simulation onchain. | Not stated on this page. | Not stated on this page. |
+| [Chaos Labs](https://chaoslabs.xyz/posts/a-ux-framework-for-onchain-lending-products) | Risk Oracles that "dynamically adjust these parameters (e.g., LTVs, caps, rate slopes)" within "governance-defined bounds." The page does not name a market-data vendor. | Not stated as implied volatility. Described as real-time, responsive risk-parameter adjustment. | Not stated on this page. | "Dynamically adjust." The exact interval is not stated. | Not stated on this page. | Not stated on this page. | Not stated on this page. |
+| [Chainlink Rate and Volatility Feeds](https://docs.chain.link/data-feeds/rates-feeds) | Realized volatility from the same data providers used in Chainlink price feeds, with prices sampled every 10 minutes. The docs page states that realized volatility is not implied volatility. A [June 12, 2023 Chainlink blog](https://chain.link/blog/volatility-oracles) describes implied volatility via Chainlink Functions from a provider API, not as an aggregated Data Feed. | Realized volatility feeds: no (historical price movement). Implied volatility via Functions: yes, as that 2023 blog describes it, but not as a standard aggregated feed on the current Rate and Volatility Feeds page. | Not stated on the overview. Inventory is on the [feed addresses](https://docs.chain.link/data-feeds/rates-feeds/addresses) page, which does not inline the list in its documentation index. | "onchain values are updated when the feed heartbeat or deviation threshold is met." Sampling is every 10 minutes. Per-feed heartbeat and deviation are on the addresses page. | Offchain computation, then written onchain as a Data Feed. | Not stated on the overview page. | Not stated on this page. |
+| [Block Scholes](https://docs.blockscholes.com/) | Options-derived implied volatility surfaces (IV by strike, delta and moneyness, a BSIV index, calibrated SVI parameters) plus broader market data, via the [REST API](https://docs.blockscholes.com/data-access/rest-api). | Yes. Implied volatility. | "Digital asset data." A specific coin list is not stated on the getting-started or REST API overview pages. | REST for historical and recent data; WebSocket for real-time streaming. An exact interval is not stated on these pages. | Offchain analytics API. The getting-started page also describes on-chain oracle delivery through push and pull models. | REST requests require an `X-API-Key`. Self-service plans and a free trial API key are offered at console.blockscholes.com. | Not stated on these pages. |
+| [Pyth price feeds](https://docs.pyth.network/price-feeds/best-practices) | Aggregated price plus a confidence interval (the page's example is $50000 ± $10). | No. Confidence is about current price uncertainty, not implied volatility. | Not stated on this best-practices page. | Not stated as a fixed interval on this page. Freshness and staleness are described as integrator-enforced. | Onchain read of a price and confidence interval. This is not a volatility fit. | Not stated on this page. | Not stated on this page. |
+
+**Where Brace stands out**
+
+- The volatility number is computed onchain from raw Gemini quotes, so the relayer cannot post a made-up sigma.
+- Limits move from forward-looking implied vol, including on assets the live board already posts such as ZEC, not only from a governance vote or from backward-looking realized vol.
+- Thin or stale data never loosens a limit. After an hour without a fresh post, borrowing pauses.
+- Odds never liquidate anyone. Liquidation uses only the fixed 80% threshold. QuickNode Streams records rejected borrows as well as accepted ones (see the rejected transaction above).
+
+**Where others are stronger.** Kamino and Jupiter Lend are production lending markets with deep liquidity and established oracles. Gauntlet and Chaos Labs have long-running parameter-management practice and, in Chaos's description, Risk Oracles that can move LTVs inside governance bounds. Chainlink already ships onchain realized-volatility feeds, and Block Scholes already sells institutional implied-volatility surfaces (an API key is required). Brace is a devnet demo. Its edge is public prediction-market implied vol, computed onchain, and wired into a borrow limit the program actually enforces.
+
 ## Tracks
 
 | Track | What fits | Where to check |
 |---|---|---|
-| DeFi & Onchain Apps | A lending risk primitive plus a working pool that enforces it | [`instructions/borrow.rs`](programs/brace/src/instructions/borrow.rs), Try It step 2 |
-| Best use of Solana | Volatility math onchain in an Anchor program on devnet, about 66k compute units per post | [`src/math.rs`](programs/brace/src/math.rs), [`instructions/post_quotes.rs`](programs/brace/src/instructions/post_quotes.rs) |
+| DeFi & Onchain Apps | A lending risk primitive plus a working pool that enforces it | [`instructions/borrow.rs`](programs/brace/src/instructions/borrow.rs), Try It steps 3 and 4 |
+| Best use of Solana | Volatility math onchain in an Anchor program on devnet; a verified SOL `post_quotes` used 40,674 compute units | [`src/math.rs`](programs/brace/src/math.rs), [`instructions/post_quotes.rs`](programs/brace/src/instructions/post_quotes.rs), [the packed post](https://explorer.solana.com/tx/5cwQA5BzCHPZPJTDbs6bRiPX649mQr8v4vj8C2kXusPayhZk6pL5mmMC9nJtuKHqzw5ad2mhjHiFrgwNjRajcgNB?cluster=devnet) |
 | Gemini Prediction Markets | Gemini's live ladders are the only input to the oracle | [`worker/src/`](worker/src), [How Gemini is used](#how-the-sponsor-tech-is-used) |
-| QuickNode Streams | Streams is the data source for the history, blocked-borrow feed and accuracy tracker | TBD-post-build: Task 9 |
+| QuickNode Streams | Stream `brace-program` on Solana devnet, filtered to the program id, delivers every successful and failed Brace transaction to the Worker `/streams` webhook. That feed powers `/history`, `/actions`, the History page, and the accuracy tracker. | [`worker/filters/brace-program.js`](worker/filters/brace-program.js), [live `/history`](https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL) |
 
 ## What Works Today
 
 | Piece | State |
 |---|---|
-| Brace program (oracle, limits, pool, liquidation) | Built, 49 Rust tests pass; not yet on devnet |
-| Relayer Worker (Cloudflare, every minute) | Built, 18 unit tests on live Gemini fixtures; encoding accepted by the program in 3 tests; not yet deployed |
-| Streams sink and `/history` API | Not built yet |
-| Web app (risk board, borrow flow) | Not built yet |
-| Accuracy tracker (Python) | In progress by Alchin |
+| Brace program (oracle, limits, pool, liquidation) | Live on Solana devnet at the address above. 52/52 Rust tests passed on Nov 17, 2026. |
+| Relayer Worker (Cloudflare, every minute) | Live at [brace-relayer.ohjaye0.workers.dev](https://brace-relayer.ohjaye0.workers.dev/health). 55/55 worker tests passed on Nov 17, 2026. |
+| Streams sink and `/history` API | Live. `/history?asset=SOL` is oldest-first. `/actions` has recorded the verified deposit, blocked borrow and accepted borrow. |
+| Web app (risk board, borrow flow, history) | Live at [brace-ivory.vercel.app](https://brace-ivory.vercel.app). 60/60 app tests passed on Nov 17, 2026. |
+| Accuracy tracker (Python) | In progress by Alchin. No measured hit rate in this README yet. |
 
 ## How the Sponsor Tech Is Used
 
@@ -80,7 +122,9 @@ Forward-looking volatility feeds today come from options markets, and Deribit, t
 - `post_quotes` fits the ladder onchain; `borrow` and `withdraw` check the live limit; failed borrows log `brace blocked ltv=… limit=…`.
 
 **QuickNode Streams**
-- TBD-post-build: stream config (Solana devnet, filtered to the program id), destination, and what the history API serves.
+- Stream name `brace-program`, Solana devnet, filtered to program `Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC`.
+- The filter in [`worker/filters/brace-program.js`](worker/filters/brace-program.js) keeps successful and failed transactions that touch the program, and skips empty blocks.
+- Destination: the relayer Worker webhook at `/streams`. The Worker stores rows in D1 and serves `GET /history?asset=SOL` (oldest-first; `sigma_annual` and `effective_ltv` are 0-1 ratios) and `GET /actions` (`ltv` and `limit` are basis points; `ok` is a boolean).
 
 ## How It Works
 
@@ -116,7 +160,9 @@ Reviewed in five separate passes (correctness, access control, financial logic, 
 - **The relayer is trusted** for quotes and the spot price. Mitigations: spot only moves on confident posts, must sit within 3% of the ladder's implied median, and goes stale after an hour.
 - **`initialize` can be front-run** between deploy and setup. Deploy, initialize and pool setup run back to back from one script, and the stored admin is checked afterwards.
 - **Liquidation repays the full debt** only. Test USD has no value.
+- **Interest is 0%.** This is a risk-limit demo, not a full lending market.
 - **Devnet only.** Gemini liquidity is thin: quotes exist, trades are rare, which is why confidence scoring and fail-safe staleness exist.
+- **Phantom simulation of an over-limit borrow.** On **Submit anyway**, Phantom may show "Failed to simulate" / "Phantom blocked this request" because the program is expected to fail. The user has to confirm past that warning for the rejected transaction to land onchain.
 
 <details><summary><strong>Repository</strong></summary>
 
@@ -124,7 +170,8 @@ Reviewed in five separate passes (correctness, access control, financial logic, 
 |---|---|
 | `programs/brace/src/` | Anchor program: math, state, instructions |
 | `programs/brace/tests/` | LiteSVM tests: oracle, pool, adversarial, fuzz invariants, relayer encoding |
-| `worker/` | Cloudflare relayer Worker (TypeScript) and its tests |
+| `worker/` | Cloudflare relayer Worker (TypeScript), Streams sink, and tests |
+| `app/` | Next.js risk board, borrow flow, and history page |
 | `scripts/devnet-setup.mjs` | Deploy-time setup: initialize, pool, admin check |
 | `docs/` | Spec, plan, reviews, research, event rules, progress log |
 
@@ -136,11 +183,11 @@ Reviewed in five separate passes (correctness, access control, financial logic, 
 
 - First commit: `a71e7ef`, 2026-11-15 23:14 Lagos (16:14 CST). No earlier code, template or boilerplate beyond `anchor init`. Check: `git log --reverse --format='%h %ad %s' --date=iso | head -3`.
 - Code, tests and docs were written with AI coding assistants (Claude and Grok), directed by Oh-Jay, who made the product decisions and handles every wallet and account step. Every change passed its tests before merge.
-- Runtime: Anchor 1.2.2 (`anchor-lang`, `anchor-spl` with SPL Token), `@solana/web3.js` 1.98.
-- Development: LiteSVM 0.15, Vitest, TypeScript, Wrangler.
-- Services: Gemini Prediction Markets public API, Solana devnet, Cloudflare Workers, QuickNode Streams.
-- Team: Oh-Jay (build), Alchin Daryabari and a third teammate (pitch, accuracy tracker).
+- Runtime: Anchor 1.2.2 (`anchor-lang`, `anchor-spl` with SPL Token), `@solana/web3.js` 1.99.0, Next.js 15.5.29, React 19.3.1.
+- Development: LiteSVM 0.15.0, Vitest 5.1.0 (app) and 3.2.7 (worker), TypeScript 5.9.3, Wrangler 4.163.0.
+- Services: Gemini Prediction Markets public API, Solana devnet, Cloudflare Workers, QuickNode Streams, Vercel.
+- Team: Oh-Jay (build), Alchin Daryabari and BL (pitch, accuracy tracker).
 
 ## License
 
-TBD-post-build: MIT (add LICENSE file).
+[MIT](LICENSE).
