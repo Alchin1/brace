@@ -1,0 +1,218 @@
+/*
+ * Brace revamp tokens. Extends app/app/globals.css; it does not replace it.
+ * Light is the default, dark is opt in via prefers-color-scheme or data-theme="dark",
+ * exactly like the current app. Every value here is a proposal the UI bot can tune.
+ *
+ * Balanced rules baked in (see brace-ui-plan.md, "Design rules: the balance"):
+ *  - buttons stay 8px radius, never pills; only tiny status chips and dots are fully round
+ *  - one accent (flat Solana purple), no gradient text, no neon glow
+ *  - motion is short, eases out, and switches off under prefers-reduced-motion
+ */
+
+:root {
+  /* Type scale: Geist stays. Bigger, tighter display sizes are the main motionsites borrow. */
+  --rv-fs-display: clamp(2.5rem, 1.55rem + 4.2vw, 4.75rem);
+  --rv-fs-h2: clamp(1.625rem, 1.3rem + 1.4vw, 2.5rem);
+  --rv-fs-h3: 1.125rem;
+  --rv-fs-body: 1rem;
+  --rv-fs-small: 0.8125rem;
+  --rv-track-display: -0.035em;
+  --rv-track-h2: -0.025em;
+  --rv-lh-display: 1.02;
+
+  /* Shape */
+  --rv-radius-btn: 8px;
+  --rv-radius-card: 14px;
+  --rv-radius-panel: 20px;
+  --rv-radius-chip: 999px; /* status chips and dots only, never buttons */
+
+  /* Space: 4px grid */
+  --rv-section-y: clamp(64px, 6vw + 32px, 128px);
+  --rv-gutter: clamp(16px, 4vw, 32px);
+  --rv-max: 1200px;
+  --rv-header-h: 64px;
+
+  /* Motion */
+  --rv-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --rv-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --rv-dur-1: 120ms; /* hover, press */
+  --rv-dur-2: 220ms; /* menus, page enter */
+  --rv-dur-3: 420ms; /* reveals */
+  --rv-dur-4: 640ms; /* hero entrance, number ticks */
+
+  /* Surfaces that motionsites gets from dark glass, made calm for light mode */
+  --rv-header-bg: rgba(250, 250, 250, 0.82);
+  --rv-grid-line: rgba(var(--rgb), 0.06);
+  --rv-light: rgba(123, 47, 242, 0.07); /* the one ambient hero light, accent at 7% */
+  --rv-flash: rgba(var(--rgb), 0.08); /* neutral tint when a live number changes */
+  --rv-live-text: #047857; /* readable green text on light; the #14f195 dot stays the dot */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rv-header-bg: rgba(20, 20, 21, 0.78);
+    --rv-grid-line: rgba(var(--rgb), 0.07);
+    --rv-light: rgba(153, 69, 255, 0.12);
+    --rv-flash: rgba(var(--rgb), 0.1);
+    --rv-live-text: #34d399;
+  }
+}
+:root[data-theme="dark"] {
+  --rv-header-bg: rgba(20, 20, 21, 0.78);
+  --rv-grid-line: rgba(var(--rgb), 0.07);
+  --rv-light: rgba(153, 69, 255, 0.12);
+  --rv-flash: rgba(var(--rgb), 0.1);
+  --rv-live-text: #34d399;
+}
+
+/* Native smooth scrolling for in-page anchors only, and never under reduced motion. No Lenis. */
+html {
+  scroll-padding-top: calc(var(--rv-header-h) + 16px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Global reduced-motion floor. Components also check it in JS, this is the safety net. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Shared primitives */
+.rv-wrap {
+  max-width: var(--rv-max);
+  margin: 0 auto;
+  padding: 0 var(--rv-gutter);
+}
+
+.rv-display {
+  font-size: var(--rv-fs-display);
+  line-height: var(--rv-lh-display);
+  letter-spacing: var(--rv-track-display);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.rv-h2 {
+  font-size: var(--rv-fs-h2);
+  line-height: 1.1;
+  letter-spacing: var(--rv-track-h2);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.rv-eyebrow {
+  font-family: var(--mono);
+  font-size: var(--rv-fs-small);
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+}
+
+.rv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--rv-radius-btn);
+  border: 1px solid transparent;
+  font: 500 15px/1 var(--sans);
+  cursor: pointer;
+  transition:
+    background-color var(--rv-dur-1) var(--rv-ease-out),
+    border-color var(--rv-dur-1) var(--rv-ease-out),
+    transform var(--rv-dur-1) var(--rv-ease-out);
+}
+.rv-btn:active {
+  transform: scale(0.98);
+}
+.rv-btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.rv-btn-primary:hover {
+  background: var(--accent-hover);
+}
+.rv-btn-ghost {
+  background: var(--card);
+  color: var(--text);
+  border-color: var(--hair-2);
+}
+.rv-btn-ghost:hover {
+  border-color: rgba(var(--rgb), 0.28);
+}
+
+/* Small status chip: the only fully rounded shape allowed. Not interactive. */
+.rv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--rv-radius-chip);
+  border: 1px solid var(--hair-2);
+  font: 500 12px/1 var(--mono);
+  color: var(--text-2);
+}
+
+/* Live dot with a calm pulse ring. The ring is the only looping animation on the page. */
+.rv-dot {
+  position: relative;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex: none;
+}
+.rv-dot[data-status="live"] {
+  background: var(--live);
+}
+.rv-dot[data-status="stale"] {
+  background: var(--stale-dot);
+}
+.rv-dot[data-status="live"]::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid var(--live);
+  opacity: 0;
+  animation: rv-ping 2.4s var(--rv-ease-out) infinite;
+}
+@keyframes rv-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rv-dot[data-status="live"]::after {
+    display: none;
+  }
+}
+
+.rv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

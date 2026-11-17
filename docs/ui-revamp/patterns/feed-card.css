@@ -1,0 +1,100 @@
+.rv-feed-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .rv-feed-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .rv-feed-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.rv-feed {
+  --rv-cx: 50%;
+  --rv-cy: 0%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--rv-radius-card);
+  border: 1px solid var(--hair-2);
+  background: var(--card);
+  color: var(--text);
+  overflow: hidden;
+  transition:
+    transform var(--rv-dur-2) var(--rv-ease-out),
+    border-color var(--rv-dur-2) var(--rv-ease-out);
+}
+.rv-feed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(240px circle at var(--rv-cx) var(--rv-cy), rgba(var(--rgb), 0.05), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--rv-dur-2) var(--rv-ease-out);
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .rv-feed:hover {
+    transform: translateY(-2px);
+    border-color: rgba(var(--rgb), 0.24);
+  }
+  .rv-feed:hover::before {
+    opacity: 1;
+  }
+}
+.rv-feed:active {
+  transform: scale(0.99);
+}
+
+.rv-feed-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rv-feed-sym {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.rv-feed-name {
+  color: var(--text-3);
+  font-size: 14px;
+}
+.rv-feed-status {
+  margin-left: auto;
+}
+.rv-feed-limit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rv-feed-k {
+  font: 400 12px/1 var(--mono);
+  color: var(--text-3);
+}
+.rv-feed-big {
+  font: 500 clamp(2rem, 1.6rem + 1.6vw, 2.75rem) / 1 var(--mono);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.rv-feed-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.rv-feed-v {
+  font-family: var(--mono);
+}
+.rv-feed-age {
+  font: 400 12px/1 var(--mono);
+  color: var(--text-3);
+}

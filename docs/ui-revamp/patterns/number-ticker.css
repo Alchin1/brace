@@ -1,0 +1,22 @@
+.rv-ticker {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  border-radius: 4px;
+  padding: 0 2px;
+  margin: 0 -2px;
+  transition: background-color 900ms var(--rv-ease-out);
+}
+.rv-ticker[data-dir] {
+  background: var(--rv-flash);
+  transition-duration: 120ms;
+}
+.rv-ticker-mark {
+  display: inline-block;
+  width: 1ch;
+  font-size: 0.8em;
+  color: var(--text-3);
+}

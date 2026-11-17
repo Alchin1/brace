@@ -1,0 +1,44 @@
+.rv-section {
+  /* padding-top only: .rv-section is often combined with .rv-wrap, which owns the side padding */
+  padding-top: var(--rv-section-y);
+}
+.rv-shead {
+  position: relative;
+  padding-top: 20px;
+  margin-bottom: clamp(24px, 3vw, 40px);
+}
+.rv-shead-rule {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--hair-2);
+  transform-origin: left;
+  transform: scaleX(1);
+  transition: transform 900ms var(--rv-ease-out);
+}
+/* Hidden only once JS has observed it and it is still off screen. */
+.rv-shead:not([data-seen]) .rv-shead-rule {
+  transform: scaleX(0.001);
+}
+@media (scripting: none) {
+  .rv-shead .rv-shead-rule {
+    transform: none;
+  }
+}
+.rv-shead-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px 24px;
+  align-items: baseline;
+}
+@media (min-width: 768px) {
+  .rv-shead-row {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+  }
+}
+.rv-shead-aside {
+  color: var(--text-3);
+  font-size: 13px;
+}
