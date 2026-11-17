@@ -6,7 +6,7 @@
 
 **Gemini's prediction markets, turned into an onchain volatility oracle for Solana lending.**
 
-Lending markets set loan-to-value limits by governance vote and rarely change them, so limits are still the calm-week numbers when volatility arrives. Brace reads Gemini's live "price X or above" ladders, computes implied volatility onchain on Solana, and tightens borrowing limits before the move. Odds can only tighten a limit. They never loosen it past the governance cap and never liquidate anyone.
+Lending markets set loan-to-value limits by governance vote and rarely change them, so limits are still the calm-week numbers when volatility arrives. Brace reads Gemini's live "price X or above" ladders, computes implied volatility onchain on Solana, and tightens borrowing limits before the move. Limits never go above the 75% governance cap, stale data only ever lowers them, and odds never liquidate anyone.
 
 - [Try it](#try-it) (TBD-post-build: live app link)
 - [Proof it's real](#proof-its-real): program on devnet, live feeds, tests
