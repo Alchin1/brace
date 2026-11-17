@@ -10,11 +10,11 @@ Run by Grok on Tue Nov 17, 2026, 12:12 to 12:45 Africa/Lagos (WAT, UTC+1), again
 | 1 Planning | Dependencies called once | pass | Gemini events and pubticker, devnet RPC, Cloudflare, QuickNode Stream, Vercel all answered live today. |
 | 1 Planning | Deadlines in one list | pass | `docs/event.md` key dates, CST and WAT. |
 | 2 UI | Every page at 390 and 1280, light and dark | pass | 11 routes x 2 widths x 2 themes. No sideways scroll on any (scrollWidth equals clientWidth). No raw errors, no em dashes, no TODO or lorem text. |
-| 2 UI | Loading, empty, error states | pass | Relayer blocked: History says "Could not load history" and "Could not reach the history API". RPC blocked: board says "Could not reach the devnet RPC. Retrying every 15 seconds." Gemini blocked: asset page says "Live quotes unavailable, showing the onchain fit". |
+| 2 UI | Loading, empty, error states | pass, improved (B6b) | Raw "Error: Failed to fetch" is gone. RPC blocked: board says "Live limits are not loading. Could not connect to Solana devnet. The page tries again every 15 seconds, or you can try now." with a Try again button; hero chart says "Devnet is not answering. Trying again."; borrow page says "The live SOL limit is not loading..." with Try again instead of "--" forever. Relayer blocked: "Could not load borrows. Could not connect to the history service." Gemini blocked: "Live quotes unavailable, showing the onchain fit". |
 | 2 UI | Wallet not connected / no wallet | pass | Borrow page shows Connect wallet; with no wallet installed: "No Solana wallet found in this browser. On a phone, open this page inside Phantom." |
 | 2 UI | Keyboard focus visible | pass | Tab focus shows a 2px solid outline. Screen reader run: not run (needs a real device). |
-| 2 UI | Tap targets 44px | fail (minor) | The theme toggle icon button and the footer GitHub link are under 44px. Recommendation for Oh-Jay. |
-| 2 UI | Clear 404 | pass, could be better | Next default "404 This page could not be found." with the site nav. Recommendation: a link back to the board. |
+| 2 UI | Tap targets 44px | fixed, pass (B6b) | Theme toggle and Menu are 44x44; footer links, brand, desktop nav, "How it works" and "All assets" have 44px hit areas with no visual shift. Automated check on 5 pages at 390 and 1280: no control under 44px outside running text. |
+| 2 UI | Clear 404 | fixed, pass (B6b) | Custom page: "Page not found" and a "Back to the board" button. Live `/does-not-exist` returns 404 with the link. |
 | 3 Backend | Rule breaker, stale data, max size, invariants | pass | `cargo test -p brace` 52/52 in a fresh clone (12 adversarial, fuzz of 3,000 random actions in 51.90s, stale step-down tests p03, t10, a04). |
 | 3 Backend | Automatic path with nobody watching | pass | Minute cron posted all 5 feeds; onchain Feed accounts last written 27s before 12:24:48 WAT. |
 | 3 Backend | Two real users at once | not run | Needs team. |
@@ -45,7 +45,7 @@ Run by Grok on Tue Nov 17, 2026, 12:12 to 12:45 Africa/Lagos (WAT, UTC+1), again
 | 14 Completeness | Placeholder scan | pass | Only the two labeled README placeholders: film link (B7) and Alchin's hit rate (B4). |
 | 14 Completeness | No-wallet try mode | pass | Board, asset pages and History need no wallet. |
 | 14 Completeness | Outside users | not run | Needs team. |
-| 15 Presentation | Video, cold viewer, preview audit | not run | Video is B7 (Oh-Jay). No favicon (404) and no og:image, so link previews show no image. Recommendation for Oh-Jay. |
+| 15 Presentation | Preview audit | pass (B6b) | Favicon, icon, apple icon, 1200x630 og:image and twitter image all 200 live; og:title, og:description, og:url, og:type, og:image, twitter:card summary_large_image and twitter:image on every page. Card uses the real headline, no numbers. Pasting into X, WhatsApp and Telegram to see the card: needs a person. Video and cold-viewer test: not run (B7, team). |
 | 16 Maintenance | Uptime alert, expiry list | partial | Hourly health check runs as a Grok routine (reports in chat, not a phone alert). Expiry list is in `docs/progress.md`. |
 
 ## Live endpoint checks after the Worker redeploy (12:31 WAT)
@@ -71,7 +71,12 @@ Run by Grok on Tue Nov 17, 2026, 12:12 to 12:45 Africa/Lagos (WAT, UTC+1), again
 | 8 | Clean-machine setup from README works; verify passes | yes (fresh clone; `scripts/verify.sh` exit 0) |
 | 9 | Production env vars, domain, routes, certificates checked live | yes |
 | 10 | AI and automation run on adversarial and empty inputs, fail safely | yes |
-| 11 | Public previews, icons and links show current assets | no: no favicon, no og:image |
+| 11 | Public previews, icons and links show current assets | yes (B6b): favicon and og/twitter image live, tags on every page; a paste test in X or WhatsApp still needs a person |
 | 12 | Alerts, rollback and an expiry calendar exist | no: hourly check and expiry list yes; no phone alert, rollback not drilled |
 | 13 | Anything irreversible has a written go/no-go and was rehearsed | yes: program is upgradeable on devnet; Devpost fields rehearsed in `docs/submission-draft.md`; this table is the go/no-go |
 | 14 | Submitted once, in the required form, copy saved | no: due Fri Nov 20, target 3:00 PM WAT |
+
+## B6b front-end follow-up (Nov 17, 13:02 to 13:35 WAT)
+
+Approved by Oh-Jay. Commits a762ed7 and 93ea3bc. Every browser request now has a timeout (devnet RPC 10 s through the web3.js Connection on the board and the borrow page; relayer and `/api/ladder` 10 s) and a plain message. Under **Submit anyway**: "Phantom will warn that this transaction may fail. Confirm it anyway to see the program reject it onchain." Fresh-clone `scripts/verify.sh` at a762ed7: exit 0 (cargo 52/52, worker 76/76, app 72/72, tsc clean, build ok, live feeds 34 s old). Go/no-go is now 7 yes, 7 no.
+

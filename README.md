@@ -49,7 +49,7 @@ cargo build-sbf --manifest-path programs/brace/Cargo.toml && cargo test -p brace
 
 Use `cargo build-sbf`, not `anchor build`, in a fresh clone: `anchor build` creates a new program keypair and rewrites `declare_id`, and then the program id test fails on purpose.
 
-Expected, from a fresh run on Nov 17, 2026 (Africa/Lagos): 52 Rust tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions in 52.07s, 12 oracle, 9 pool, 3 relayer-encoding); 63 app tests; 76 worker tests.
+Expected, from a fresh run on Nov 17, 2026 (Africa/Lagos): 52 Rust tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions in 50.77s, 12 oracle, 9 pool, 3 relayer-encoding); 72 app tests; 76 worker tests.
 
 ## Proof It's Real
 
@@ -116,7 +116,7 @@ Sources were fetched on Nov 17, 2026. Each competitor cell is as that vendor's c
 | Brace program (oracle, limits, pool, liquidation) | Live on Solana devnet at the address above. 52/52 Rust tests passed on Nov 17, 2026. |
 | Relayer Worker (Cloudflare, every minute) | Live at [brace-relayer.ohjaye0.workers.dev](https://brace-relayer.ohjaye0.workers.dev/health). 76/76 worker tests passed on Nov 17, 2026. |
 | Streams sink and `/history` API | Live. `/history?asset=SOL` is oldest-first. `/actions` has recorded the verified deposit, blocked borrow and accepted borrow. Bad input gets a 400 with a plain error; responses are capped at 10,000 rows (page forward with `since`). |
-| Web app (risk board, borrow flow, history) | Live at [brace-ivory.vercel.app](https://brace-ivory.vercel.app). 63/63 app tests passed on Nov 17, 2026. |
+| Web app (risk board, borrow flow, history) | Live at [brace-ivory.vercel.app](https://brace-ivory.vercel.app). 72/72 app tests passed on Nov 17, 2026. |
 | Accuracy tracker (Python) | In progress by Alchin. No measured hit rate in this README yet. |
 
 ## How the Sponsor Tech Is Used
