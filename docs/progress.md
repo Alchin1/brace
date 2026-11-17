@@ -18,7 +18,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 12 | Borrow flow | claimed (Claude, after risk board) | | |
 | 13 | Re-check | pending | | |
 
-Next up: Task 7 done; relayer cron is on. Remaining Task 9 work is the QuickNode Stream (settings in worker/filters/brace-program.js and worker/README.md). Claude has claimed tasks 10–12.
+Next up: Grok hardening the live relayer (D1-backed /health, RPC 429 retries and fallbacks). QuickNode Stream brace-program is already active. Claude has claimed tasks 10–12.
 
 ## Session log
 
