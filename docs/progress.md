@@ -18,7 +18,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 12 | Borrow flow | claimed (Claude, after risk board) | | |
 | 13 | Re-check | pending | | |
 
-Next up: Claude has claimed tasks 10–12. Relayer still 429s some later assets in a cron tick after OnFinality + Tatum retries; ZEC posts are stale vs SOL/BTC. /actions stays empty until someone borrows or deposits.
+Next up: Grok cutting per-tick RPC calls (shared blockhash, packed posts, lazy confirm, RPC rotation). Claude has claimed tasks 10–12.
 
 ## Session log
 
