@@ -21,6 +21,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | B1 | README pass 2 | done (Grok) | TBD-post-build lines filled with verified links; How It Compares sourced Nov 17, 2026; fresh tests cargo 52/52, worker vitest 55/55 and tsc --noEmit exit 0, app vitest 60/60; MIT LICENSE; board screenshot docs/images/board.png (260x563, no wallet data); B3 tx links in Proof; placeholders remain for the film link and Alchin's hit rate | (this commit) |
 | B3 | Real Phantom borrow | done (Oh-Jay; Grok verified onchain) | Open position 2khAyi6P… at 10:22:35 WAT; deposit 0.5 SOL 3zSophy… at 10:23:05 WAT, log brace deposit … lamports=500000000; rejected borrow 59uvMm48… at 10:23:54 WAT, custom 0x1775 / RiskTightened 6005, log brace blocked ltv=7208 limit=6954; accepted borrow 8.30 test USD 42EzMtDm… at 10:24:22 WAT, log brace borrow … amount=8300000 ltv=2303 limit=6952. All four confirmed on devnet. /actions already has the deposit, blocked, and borrow rows. Phantom shows a simulation warning on Submit anyway; user must confirm past it. | chain txs; logged in this commit |
 
+| B6 | Full re-check (build-and-ship-playbook, all 16 sections + final gate) | claimed (Grok), in progress | started 2026-11-17 12:15 WAT | (this commit) |
 
 Next up: placeholders remain in the README for the film link (B7) and Alchin's hit rate (B4). Oh-Jay forwards the /history link to Alchin. Grok's next build task is B6 (full re-check). See docs/HANDOFF.md Part C.
 
