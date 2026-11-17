@@ -12,7 +12,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 6 | Reviews | passes 1-5 done; F1 and F2 fixed; program id switched to Frv6CVJK… | 49/49 tests (15 math, 12 adversarial, 1 fuzz, 12 oracle, 9 pool); F1/F2 marked in docs/reviews.md | (this commit) |
 | 7 | Devnet deploy | pending (needs devnet SOL) | | |
 | 8 | Relayer Worker | staged on Cloudflare (Grok); cron pending Task 7 | https://brace-relayer.ohjaye0.workers.dev/health 200 {"ok":true,"lastRun":null,"lastSigs":{}}; vars PROGRAM_ID, RPC_URL; secret RELAYER_SECRET set; cron not enabled | (this commit) |
-| 9 | Streams + history | pending (needs QuickNode key) | | |
+| 9 | Streams + history | in progress (Grok); Stream itself gated on QuickNode key | | |
 | 10 | README | in progress (Claude, branch claude/readme) | | |
 | 11 | Risk board | claimed (Claude, after README; mockup first) | | |
 | 12 | Borrow flow | claimed (Claude, after risk board) | | |
