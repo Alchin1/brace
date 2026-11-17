@@ -13,9 +13,9 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 7 | Devnet deploy | pending (needs devnet SOL) | | |
 | 8 | Relayer Worker | done (Grok); not deployed (no Cloudflare token) | worker vitest 18/18, tsc --noEmit exit 0; cargo test -p brace 52/52 (15 math, 12 adversarial, 1 fuzz, 12 oracle, 9 pool, 3 worker_ix incl. LiteSVM accept of worker-encoded post_quotes) | (this commit) |
 | 9 | Streams + history | pending (needs QuickNode key) | | |
-| 10 | README | pending | | |
-| 11 | Risk board | pending (needs Vercel token) | | |
-| 12 | Borrow flow | pending | | |
+| 10 | README | in progress (Claude, branch claude/readme) | | |
+| 11 | Risk board | claimed (Claude, after README; mockup first) | | |
+| 12 | Borrow flow | claimed (Claude, after risk board) | | |
 | 13 | Re-check | pending | | |
 
 Next up: Task 7 still needs funded keys (deployer and relayer are 0 SOL; program not on devnet). Tasks 10–12 are free for Claude. Task 9 needs a QuickNode key.
