@@ -5,19 +5,19 @@ export const metadata: Metadata = { title: "Try a borrow" };
 
 export default function BorrowPage() {
   return (
-    <>
-      <Link href="/" className="back">
-        Back to board
+    <div className="page">
+      <Link href="/" className="crumb text-link">
+        All assets
       </Link>
       <h1>Try a borrow</h1>
-      <div className="notice" role="status">
-        <strong>Coming next</strong>
-        <span className="muted">
-          The borrow flow is not built yet. When it ships you will connect a devnet wallet, deposit devnet SOL and borrow test USD.
-          A borrow above SOL&apos;s live limit will fail onchain with RiskTightened; one under it will go through.
-        </span>
+      <p className="lede">Deposit devnet SOL and borrow test USD against the limit Brace sets onchain.</p>
+      <div className="card placeholder" role="status">
+        <p>The borrow flow ships next. It will use the same live limit shown here.</p>
+        <p>
+          A borrow above SOL&apos;s live limit will fail onchain. One under it will go through. Devnet only: test USD has no value and
+          the demo pool charges no interest.
+        </p>
       </div>
-      <p className="muted">Devnet only. Test USD has no value and the demo pool charges no interest.</p>
-    </>
+    </div>
   );
 }

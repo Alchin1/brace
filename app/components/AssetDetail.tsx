@@ -7,91 +7,112 @@ import {
   feedPda,
   feedStatus,
   fromE6,
-  pctFromBps,
   relTime,
   untilTime,
   type Symbol,
 } from "@/lib/brace";
+import { horizonLabel, pct1 } from "@/lib/chart";
 import { BoardNotice, useBoard } from "./BoardProvider";
-import { StatusCell } from "./Board";
-
-function horizonLabel(secs: number): string {
-  if (secs % 3600 === 0) return `${secs / 3600}h`;
-  return `${Math.round(secs / 60)}m`;
-}
+import { ASSET_NAMES, Gauge, StatusCell } from "./Instruments";
+import { LadderChart, expiryLabel } from "./LadderChart";
 
 export function AssetDetail({ symbol }: { symbol: Symbol }) {
   const { state, now } = useBoard();
   const ok = state?.kind === "ok" ? state : null;
   const f = ok ? ok.feeds[symbol] : null;
+  const p = ok?.config.params ?? null;
   const pda = feedPda(symbol).toBase58();
+  const limit = ok && f ? feedEffectiveLtvBps(f, ok.config.params, now) : null;
+  const status = ok ? feedStatus(f, ok.config.params, now) : null;
+  const cap = p?.govMaxLtvBps ?? 7500;
+  const liq = p?.liqThresholdBps ?? 8000;
 
-  const rows: [string, React.ReactNode][] =
-    ok && f
+  const rows: [string, string][] =
+    ok && f && p
       ? [
-          ["Status", <StatusCell key="s" status={feedStatus(f, ok.config.params, now)} />],
-          ["Spot", <span key="v" className="mono">${fromE6(f.spotE6)}</span>],
-          ["Implied median", <span key="v" className="mono">${fromE6(f.medianE6)}</span>],
-          ["Implied vol (annualised)", <span key="v" className="mono">{pctFromBps(f.sigmaBps)}</span>],
-          [
-            `${horizonLabel(ok.config.params.horizonSecs)} move (1 sigma)`,
-            <span key="v" className="mono">{(Number(f.horizonMoveE6) / 1e4).toFixed(2)}%</span>,
-          ],
-          ["Ladder points used", <span key="v" className="mono">{f.points}</span>],
-          ["Gemini ticker", <span key="v" className="mono">{f.ticker || "--"}</span>],
-          [
-            "Expiry",
-            <span key="v" className="mono">
-              {new Date(Number(f.expiryTs) * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC ({untilTime(Number(f.expiryTs) - now)})
-            </span>,
-          ],
-          ["Confident", <span key="v">{f.confident ? "yes" : "no"}</span>],
-          ["Max LTV (last valid post)", <span key="v" className="mono">{pctFromBps(f.maxLtvBps)}</span>],
-          ["Max LTV (effective now)", <span key="v" className="mono">{pctFromBps(feedEffectiveLtvBps(f, ok.config.params, now))}</span>],
-          ["Last post", <span key="v" className="mono">{relTime(now - Number(f.postedAt))}</span>],
-          ["Last valid post", <span key="v" className="mono">{f.hasValid ? relTime(now - Number(f.lastValidAt)) : "never"}</span>],
+          ["Spot price", `$${fromE6(f.spotE6)}`],
+          ["Implied median at expiry", `$${fromE6(f.medianE6)}`],
+          ["Implied volatility (annual)", pct1(Number(f.sigmaBps))],
+          [`${horizonLabel(p.horizonSecs)} move (1σ)`, `${(Number(f.horizonMoveE6) / 1e4).toFixed(2)}%`],
+          ["Quotes used", `${f.points}`],
+          ["Gemini market", f.ticker || "none"],
+          ["Expires", `${expiryLabel(Number(f.expiryTs), now)}, ${untilTime(Number(f.expiryTs) - now)}`],
+          ["Last confident update", f.hasValid ? relTime(now - Number(f.lastValidAt)) : "never"],
+          ["Max limit", pct1(f.maxLtvBps)],
+          ["Limit right now", limit === null ? "--" : pct1(limit)],
         ]
       : [];
 
   return (
-    <>
-      <Link href="/" className="back">
-        Back to board
+    <div className="page">
+      <Link href="/" className="crumb text-link">
+        All assets
       </Link>
-      <h1>{symbol}</h1>
-      <p className="lede">
-        Brace reads Gemini&apos;s &quot;{symbol} above X&quot; price ladder, fits a probability curve to it onchain, and turns the implied
-        volatility into a max loan-to-value. Higher volatility means a lower limit. If posts stop or lose confidence, the limit steps
-        down every {ok ? Math.round(ok.config.params.staleSecs / 60) : 5} minutes toward a conservative floor.
-      </p>
-
-      <BoardNotice state={state} />
-
-      {ok && !f && (
-        <div className="notice" role="status">
-          <strong>No data</strong>
-          <span className="muted">The {symbol} feed account does not exist on devnet yet.</span>
+      <div className="asset-top">
+        <div className="asset-title">
+          <h1>{symbol}</h1>
+          <span className="name">{ASSET_NAMES[symbol]}</span>
         </div>
-      )}
+        <StatusCell status={status} />
+      </div>
 
-      {rows.length > 0 && (
-        <dl className="facts">
-          {rows.map(([k, v]) => (
-            <div key={k}>
-              <dt>{k}</dt>
-              <dd>{v}</dd>
+      <div style={{ marginTop: 24 }}>
+        <BoardNotice state={state} />
+        {ok && !f && (
+          <div className="notice" role="status">
+            <strong>No data</strong>
+            <span className="muted">The {symbol} feed account does not exist on devnet yet.</span>
+          </div>
+        )}
+      </div>
+
+      <div className="asset-grid">
+        <LadderChart symbol={symbol} feed={f} params={p} now={now} effectiveBps={limit} />
+
+        <div>
+          <div className="card limit-panel">
+            <div className="big">
+              <span className="label">Limit right now</span>
+              <span className="v">{limit === null ? "--" : pct1(limit)}</span>
             </div>
-          ))}
-        </dl>
-      )}
+            <div className="gauge-wrap">
+              <div className="gauge-head">
+                <span className="muted" style={{ left: `${cap / 100}%` }}>
+                  {cap / 100}% cap
+                </span>
+              </div>
+              <Gauge limitBps={limit} capBps={cap} liqBps={liq} />
+              <div className="gauge-head" style={{ height: 16 }}>
+                <span className="muted" style={{ right: 0, top: 2, bottom: "auto", transform: "none" }}>
+                  liquidation at {liq / 100}%
+                </span>
+                <span className="muted" style={{ left: 0, top: 2, bottom: "auto", transform: "none" }}>
+                  0%
+                </span>
+              </div>
+            </div>
+          </div>
 
-      <p className="small muted account-link">
-        Feed account{" "}
-        <a href={explorerAddress(pda)} target="_blank" rel="noopener noreferrer" className="mono">
-          {pda.slice(0, 4)}...{pda.slice(-4)}
-        </a>{" "}
-        on Solana Explorer
-      </p>
-    </>
+          {rows.length > 0 && (
+            <dl className="facts">
+              {rows.map(([k, v]) => (
+                <div key={k}>
+                  <dt>{k}</dt>
+                  <dd>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          <p className="account-link">
+            Feed account{" "}
+            <a href={explorerAddress(pda)} target="_blank" rel="noopener noreferrer" className="text-link mono">
+              {pda.slice(0, 4)}…{pda.slice(-4)}
+            </a>{" "}
+            on Solana Explorer
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

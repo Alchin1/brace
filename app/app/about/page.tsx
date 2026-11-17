@@ -4,8 +4,8 @@ export const metadata: Metadata = { title: "About" };
 
 export default function AboutPage() {
   return (
-    <>
-      <h1>About Brace</h1>
+    <div className="page prose">
+      <h1>How Brace works</h1>
       <p className="lede">An onchain volatility oracle for Solana lending, built from Gemini prediction markets. UBC 2026 hackathon entry.</p>
 
       <p>
@@ -33,7 +33,7 @@ export default function AboutPage() {
       </p>
 
       <h2>Known limitations</h2>
-      <ul className="plain">
+      <ul>
         <li>
           The relayer is trusted for quotes and spot. Mitigations: spot only moves on confident posts, must be within 3% of the
           ladder-implied median, and goes stale after 1 hour.
@@ -46,6 +46,6 @@ export default function AboutPage() {
         <li>The check_borrow CPI for other lending programs was cut for time.</li>
         <li>Devnet only. No mainnet, no real funds, and the demo pool charges 0% interest.</li>
       </ul>
-    </>
+    </div>
   );
 }

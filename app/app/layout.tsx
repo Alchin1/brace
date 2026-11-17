@@ -1,23 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BoardProvider } from "@/components/BoardProvider";
 import { Footer, Header } from "@/components/Chrome";
 
-const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
+const sans = Geist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-geist-sans", display: "swap" });
+const mono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-geist-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Brace risk board", template: "%s | Brace" },
-  description: "Borrowing limits set every minute from Gemini prediction-market odds, computed onchain on Solana devnet.",
+  title: { default: "Brace: lending limits from live prediction-market odds", template: "%s | Brace" },
+  description:
+    "Brace reads Gemini's regulated prediction markets every minute, computes implied volatility onchain on Solana, and sets how much you can borrow.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#141415" },
   ],
 };
 

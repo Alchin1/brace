@@ -1,70 +1,111 @@
 "use client";
 
 import Link from "next/link";
-import { SYMBOLS, feedEffectiveLtvBps, feedStatus, pctFromBps, relTime, type FeedStatus } from "@/lib/brace";
+import { SYMBOLS, feedEffectiveLtvBps, feedStatus, relTime } from "@/lib/brace";
+import { pct1 } from "@/lib/chart";
 import { BoardNotice, useBoard } from "./BoardProvider";
+import { ASSET_NAMES, Gauge, StatusCell } from "./Instruments";
+import { LadderChart } from "./LadderChart";
 
-export function StatusCell({ status }: { status: FeedStatus }) {
-  const text = status === "live" ? "live" : status === "stale" ? "stale, stepping down" : "no data";
-  const label = status === "live" ? "Live" : status === "stale" ? "Stale, limit stepping down" : "No data";
+/** The single live reading under the hero actions. */
+export function HeroReading() {
+  const { state, now } = useBoard();
+  const ok = state?.kind === "ok" ? state : null;
+  const f = ok?.feeds.SOL ?? null;
+  if (!ok || !f) {
+    return (
+      <p className="reading">
+        <span className="dot none" aria-hidden />
+        <span>{state === null ? "Reading devnet" : "SOL feed not available"}</span>
+      </p>
+    );
+  }
+  const status = feedStatus(f, ok.config.params, now);
   return (
-    <span className="status">
-      <span className={`dot ${status}`} role="img" aria-label={label} />
-      {text}
-    </span>
+    <p className="reading" aria-live="off">
+      <span className={`dot ${status}`} role="img" aria-label={status === "live" ? "Live" : "Stale"} />
+      <span>
+        SOL limit <strong>{pct1(feedEffectiveLtvBps(f, ok.config.params, now))}</strong>
+      </span>
+      <span className="sep">·</span>
+      <span>implied vol {pct1(Number(f.sigmaBps))}</span>
+      <span className="sep">·</span>
+      <span>updated {relTime(now - Number(f.postedAt))}</span>
+    </p>
   );
 }
 
-export function Board() {
+export function HeroChart() {
   const { state, now } = useBoard();
   const ok = state?.kind === "ok" ? state : null;
-  const sol = ok?.feeds.SOL ?? null;
+  const f = ok?.feeds.SOL ?? null;
+  return (
+    <LadderChart
+      symbol="SOL"
+      feed={f}
+      params={ok?.config.params ?? null}
+      now={now}
+      effectiveBps={ok && f ? feedEffectiveLtvBps(f, ok.config.params, now) : null}
+    />
+  );
+}
+
+export function AssetList() {
+  const { state, now } = useBoard();
+  const ok = state?.kind === "ok" ? state : null;
+  const cap = ok?.config.params.govMaxLtvBps ?? 7500;
+  const liq = ok?.config.params.liqThresholdBps ?? 8000;
 
   return (
     <>
       <BoardNotice state={state} />
-
-      <div className="tiles">
-        <div className="tile">
-          <div className="tile-label">SOL max borrow</div>
-          <div className="tile-value mono">{ok && sol ? pctFromBps(feedEffectiveLtvBps(sol, ok.config.params, now), 1) : "--"}</div>
-          <div className="tile-note">Effective max loan-to-value</div>
+      <div className="alist" role="table" aria-label="Borrowing limit per asset">
+        <div className="arow alist-head" role="row">
+          <span role="columnheader">Asset</span>
+          <span role="columnheader" className="r col-vol">
+            Implied vol
+          </span>
+          <span role="columnheader" className="gauge-head" aria-label={`Limit on a 0 to 100% scale, cap ${cap / 100}%`}>
+            <span style={{ left: `${cap / 100}%` }}>{cap / 100}% cap</span>
+          </span>
+          <span role="columnheader" className="r">
+            Limit
+          </span>
+          <span role="columnheader" className="status-text">
+            Status
+          </span>
         </div>
-        <div className="tile">
-          <div className="tile-label">Last onchain update</div>
-          <div className="tile-value mono">{ok && sol ? relTime(now - Number(sol.postedAt)) : "--"}</div>
-          <div className="tile-note">SOL feed, posted_at</div>
-        </div>
-      </div>
-
-      <div className="table-wrap">
-        <table>
-          <caption>Per-asset limits, read from devnet every 15 seconds</caption>
-          <thead>
-            <tr>
-              <th scope="col">Asset</th>
-              <th scope="col" className="num">Implied vol</th>
-              <th scope="col" className="num">Max LTV</th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SYMBOLS.map((s) => {
-              const f = ok ? ok.feeds[s] : null;
-              const status = ok ? feedStatus(f, ok.config.params, now) : null;
-              return (
-                <tr key={s}>
-                  <th scope="row" className="row-head">
-                    <Link href={`/asset/${s}`}>{s}</Link>
-                  </th>
-                  <td className="num mono">{f ? pctFromBps(f.sigmaBps) : "--"}</td>
-                  <td className="num mono">{ok && f ? pctFromBps(feedEffectiveLtvBps(f, ok.config.params, now)) : "--"}</td>
-                  <td>{status ? <StatusCell status={status} /> : <span className="muted">--</span>}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {SYMBOLS.map((s) => {
+          const f = ok ? ok.feeds[s] : null;
+          const status = ok ? feedStatus(f, ok.config.params, now) : null;
+          const limit = ok && f ? feedEffectiveLtvBps(f, ok.config.params, now) : null;
+          const vol = f ? pct1(Number(f.sigmaBps)) : "--";
+          return (
+            <Link key={s} href={`/asset/${s}`} className="arow" role="row">
+              <span role="cell">
+                <span className="asset-name">
+                  <span className="sym">{s}</span>
+                  <span className="name">{ASSET_NAMES[s]}</span>
+                </span>
+                <span className="asset-sub mono">
+                  {ASSET_NAMES[s]} · vol {vol}
+                </span>
+              </span>
+              <span role="cell" className="r mono col-vol">
+                {vol}
+              </span>
+              <span role="cell">
+                <Gauge limitBps={limit} capBps={cap} liqBps={liq} />
+              </span>
+              <span role="cell" className="r mono limit-val">
+                {limit === null ? "--" : pct1(limit)}
+              </span>
+              <span role="cell">
+                <StatusCell status={status} compact />
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </>
   );

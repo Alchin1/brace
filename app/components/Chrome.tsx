@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Moon, Sun } from "lucide-react";
 import { PROGRAM_ID, REPO_URL, explorerAddress } from "@/lib/brace";
 
 function ThemeToggle() {
@@ -25,36 +26,86 @@ function ThemeToggle() {
     setTheme(next);
   };
 
+  const label = theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
   return (
-    <button type="button" className="theme-btn" onClick={flip} aria-label="Toggle dark mode" aria-pressed={theme === "dark"}>
-      {theme === "dark" ? "Light" : "Dark"}
+    <button type="button" className="icon-btn" onClick={flip} aria-label={label} title={label}>
+      {theme === "dark" ? <Sun size={16} strokeWidth={1.5} aria-hidden /> : <Moon size={16} strokeWidth={1.5} aria-hidden />}
     </button>
   );
 }
 
 const LINKS = [
-  { href: "/", label: "Board", sm: true },
-  { href: "/borrow", label: "Borrow", sm: false },
-  { href: "/history", label: "History", sm: false },
-  { href: "/about", label: "About", sm: true },
+  { href: "/", label: "Board" },
+  { href: "/borrow", label: "Borrow" },
+  { href: "/history", label: "History" },
+  { href: "/about", label: "About" },
 ];
+
+function isActive(path: string, href: string) {
+  if (href === "/") return path === "/" || path.startsWith("/asset");
+  return path === href;
+}
+
+function Menu({ path }: { path: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="menu" ref={ref}>
+      <button type="button" className="menu-btn" aria-expanded={open} aria-controls="site-menu" onClick={() => setOpen((o) => !o)}>
+        Menu
+      </button>
+      {open && (
+        <ul className="menu-list" id="site-menu">
+          {LINKS.map((l) => (
+            <li key={l.href}>
+              <Link href={l.href} aria-current={isActive(path, l.href) ? "page" : undefined}>
+                {l.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export function Header() {
   const path = usePathname();
   return (
     <header className="site-header">
       <div className="wrap">
-        <Link href="/" className="brand">
-          Brace <span className="tag">Solana devnet</span>
+        <Link href="/" className="brand" aria-label="Brace, devnet, home">
+          Brace <span className="net">devnet</span>
         </Link>
-        <nav className="nav" aria-label="Main">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className={l.sm ? undefined : "hide-sm"} aria-current={path === l.href ? "page" : undefined}>
-              {l.label}
-            </Link>
-          ))}
+        <div className="nav-right">
+          <nav className="nav-links" aria-label="Main">
+            {LINKS.map((l) => (
+              <Link key={l.href} href={l.href} aria-current={isActive(path, l.href) ? "page" : undefined}>
+                {l.label}
+              </Link>
+            ))}
+          </nav>
+          <Menu path={path} />
           <ThemeToggle />
-        </nav>
+        </div>
       </div>
     </header>
   );
@@ -64,13 +115,13 @@ export function Footer() {
   return (
     <footer className="site-footer">
       <div className="wrap">
-        <p>Limits never exceed 75%, and odds never trigger a liquidation.</p>
+        <p>Devnet build for UBC 2026. Test funds only.</p>
         <div className="footer-links">
-          <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-            GitHub repo
+          <a className="text-link" href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub
           </a>
-          <a href={explorerAddress(PROGRAM_ID.toBase58())} target="_blank" rel="noopener noreferrer">
-            Program on Solana Explorer
+          <a className="text-link" href={explorerAddress(PROGRAM_ID.toBase58())} target="_blank" rel="noopener noreferrer">
+            Program on Explorer
           </a>
         </div>
       </div>
