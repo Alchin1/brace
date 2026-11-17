@@ -27,11 +27,14 @@ export function Gauge({
   limitBps,
   capBps = 7500,
   liqBps = 8000,
+  markBps = null,
   label,
 }: {
   limitBps: number | null;
   capBps?: number;
   liqBps?: number;
+  /** Optional marker, e.g. the user's LTV on /borrow. */
+  markBps?: number | null;
   label?: string;
 }) {
   const pct = (bps: number) => `${Math.min(100, Math.max(0, bps / 100))}%`;
@@ -47,6 +50,9 @@ export function Gauge({
       {limitBps !== null && <rect className="fill" x="0" y="4" width={pct(limitBps)} height="6" rx="1" />}
       <line className="cap" x1={pct(capBps)} x2={pct(capBps)} y1="0" y2="14" strokeWidth="1" shapeRendering="crispEdges" />
       <line className="liq" x1={pct(liqBps)} x2={pct(liqBps)} y1="2" y2="12" strokeWidth="1" shapeRendering="crispEdges" />
+      {markBps !== null && (
+        <line className="mark" x1={pct(markBps)} x2={pct(markBps)} y1="0" y2="14" strokeWidth="3" shapeRendering="crispEdges" />
+      )}
     </svg>
   );
 }
