@@ -2,6 +2,8 @@
 // never depends on Gemini's CORS policy. Returns only real two-sided "above" quotes;
 // if the event is gone (expired) or the fetch fails, returns an empty list with a reason.
 
+import { LADDER_TIMEOUT_MS } from "../../../lib/timeouts";
+
 const EVENTS_URL = "https://api.gemini.com/v1/prediction-markets/events?status=active&limit=200&category=crypto";
 
 type GeminiContract = {
@@ -23,7 +25,7 @@ export async function GET(req: Request) {
 
   let events: GeminiEvent[];
   try {
-    const res = await fetch(EVENTS_URL, { next: { revalidate: 30 } });
+    const res = await fetch(EVENTS_URL, { next: { revalidate: 30 }, signal: AbortSignal.timeout(LADDER_TIMEOUT_MS) });
     if (!res.ok) return json({ ticker, quotes: [], reason: "unavailable" });
     const body = (await res.json()) as { data?: GeminiEvent[] };
     events = Array.isArray(body.data) ? body.data : [];
