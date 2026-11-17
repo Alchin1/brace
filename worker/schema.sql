@@ -48,3 +48,11 @@ CREATE TABLE IF NOT EXISTS relayer_assets (
   last_at INTEGER,
   last_error TEXT
 );
+
+-- Fire-and-forget signatures confirmed on a later cron tick.
+CREATE TABLE IF NOT EXISTS pending_sigs (
+  sig TEXT NOT NULL,
+  asset TEXT NOT NULL,
+  submitted_at INTEGER NOT NULL,
+  PRIMARY KEY (sig, asset)
+);

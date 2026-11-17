@@ -5,11 +5,12 @@ import { checkSinkSecret, readJsonBody, SINK_SECRET_HEADER, verifyQuickNodeSigna
 import { encodePostQuotes, toHex } from "./encode.ts";
 import { fetchEvents, fetchSpotE6 } from "./gemini.ts";
 import { actionsResponse, historyResponse, parseSince } from "./history.ts";
-import { parseRpcUrls, rpcAwareFetch, withRpcFallback } from "./rpc.ts";
+import { uniqueSigs, applySignatureStatuses, type PendingSig } from "./confirm.ts";
+import { parseRpcUrls, rotateUrls, rpcAwareFetch, withRpcFallback } from "./rpc.ts";
 import { selectLadder } from "./select.ts";
 import { buildHealthReport, D1Store, type BraceStore, type RelayerAssetState, type RelayerRunState } from "./store.ts";
 import { ingestPayload } from "./streams.ts";
-import { buildPostQuotesTransaction } from "./tx.ts";
+import { packPostBatches, type PackedPost } from "./tx.ts";
 
 export type Env = {
   PROGRAM_ID: string;
@@ -74,48 +75,140 @@ export async function previewAsset(
   };
 }
 
+function rpcConnection(url: string, rpcFetch: typeof fetch): Connection {
+  return new Connection(url, {
+    commitment: "confirmed",
+    fetch: rpcFetch,
+    disableRetryOnRateLimit: true,
+  });
+}
+
+/** Lean retry: one retry then fall over, so a 429 does not multiply calls. */
+const LEAN_RPC = { retries: 1 };
+
+export async function confirmPendingSigs(
+  store: BraceStore | null,
+  urls: string[],
+  rpcFetch: typeof fetch,
+  nowSeconds: number,
+): Promise<{ failed: (PendingSig & { error: string })[]; stillPending: Set<string> }> {
+  const stillPending = new Set<string>();
+  if (!store) return { failed: [], stillPending };
+  const pending = await store.listPendingSigs();
+  if (!pending.length) return { failed: [], stillPending };
+  const sigs = uniqueSigs(pending);
+  try {
+    const { result: statuses } = await withRpcFallback(
+      urls,
+      async (url) => {
+        const res = await rpcConnection(url, rpcFetch).getSignatureStatuses(sigs, {
+          searchTransactionHistory: true,
+        });
+        return res.value;
+      },
+      LEAN_RPC,
+    );
+    const statusBySig = new Map<string, { err?: unknown; confirmationStatus?: string | null } | null>();
+    sigs.forEach((sig, i) => statusBySig.set(sig, statuses[i] ?? null));
+    const outcome = applySignatureStatuses(pending, statusBySig, nowSeconds);
+    const done = [...outcome.confirmed, ...outcome.failed].map((p) => ({ sig: p.sig, asset: p.asset }));
+    if (done.length) await store.removePendingSigs(done);
+    for (const p of outcome.pending) stillPending.add(p.asset);
+    return { failed: outcome.failed, stillPending };
+  } catch (err) {
+    // Don't abort the tick if confirm fails; keep pending and still try to post.
+    const message = err instanceof Error ? err.message : String(err);
+    console.log(`brace confirm error: ${message}`);
+    for (const p of pending) stillPending.add(p.asset);
+    return { failed: [], stillPending };
+  }
+}
+
 export async function runOnce(env: Env, nowSeconds: number, fetchFn: typeof fetch = fetch): Promise<RunResult[]> {
   const results: RunResult[] = [];
-  const events = await fetchEvents(fetchFn);
+  const store = env.__store ?? (env.DB ? new D1Store(env.DB) : null);
   const relayer = loadRelayer(env.RELAYER_SECRET);
   const programId = new PublicKey(env.PROGRAM_ID);
-  const urls = parseRpcUrls(env);
+  const urls = rotateUrls(parseRpcUrls(env), nowSeconds);
   const rpcFetch = rpcAwareFetch(fetchFn);
 
+  const { failed: confirmFailed, stillPending } = await confirmPendingSigs(store, urls, rpcFetch, nowSeconds);
+  for (const f of confirmFailed) {
+    results.push({ asset: f.asset, error: `confirm: ${f.error}` });
+    console.log(`brace post ${f.asset} error`);
+  }
+
+  const events = await fetchEvents(fetchFn);
+  const posts: PackedPost[] = [];
   for (const asset of ASSETS) {
     try {
+      if (stillPending.has(asset.symbol)) {
+        results.push({ asset: asset.symbol, skipped: "pending confirmation" });
+        continue;
+      }
       const ladder = selectLadder(events, asset, nowSeconds);
       if (!ladder) {
         results.push({ asset: asset.symbol, skipped: "no valid ladder" });
         continue;
       }
       const spotE6 = await fetchSpotE6(asset, fetchFn);
-      const { result: sig } = await withRpcFallback(urls, async (url) => {
-        const connection = new Connection(url, {
-          commitment: "confirmed",
-          fetch: rpcFetch,
-          disableRetryOnRateLimit: true,
-        });
-        const recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-        const tx = buildPostQuotesTransaction({
-          programId,
-          relayer,
-          recentBlockhash,
-          symbol: asset.symbol,
-          expiryTs: ladder.expiryTs,
-          ticker: ladder.ticker,
-          spotE6,
-          quotes: ladder.quotes,
-        });
-        return await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+      posts.push({
+        symbol: asset.symbol,
+        expiryTs: ladder.expiryTs,
+        ticker: ladder.ticker,
+        spotE6,
+        quotes: ladder.quotes,
       });
-      results.push({ asset: asset.symbol, ticker: ladder.ticker, sig });
-      // Log only signatures and tickers.
-      console.log(`brace post ${asset.symbol} ${ladder.ticker} ${sig}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       results.push({ asset: asset.symbol, error: message });
       console.log(`brace post ${asset.symbol} error`);
+    }
+  }
+
+  if (!posts.length) return results;
+
+  const { result: latest } = await withRpcFallback(
+    urls,
+    async (url) => rpcConnection(url, rpcFetch).getLatestBlockhash(),
+    LEAN_RPC,
+  );
+
+  const batches = packPostBatches({
+    programId,
+    relayer,
+    recentBlockhash: latest.blockhash,
+    posts,
+  });
+
+  for (let i = 0; i < batches.length; i++) {
+    const batch = batches[i];
+    const batchUrls = rotateUrls(urls, i);
+    const raw = batch.tx.serialize();
+    try {
+      const { result: sig } = await withRpcFallback(
+        batchUrls,
+        async (url) =>
+          rpcConnection(url, rpcFetch).sendRawTransaction(raw, { skipPreflight: true, maxRetries: 0 }),
+        LEAN_RPC,
+      );
+      const pendingRows: PendingSig[] = batch.posts.map((post) => ({
+        sig,
+        asset: post.symbol,
+        submittedAt: nowSeconds,
+      }));
+      if (store) await store.addPendingSigs(pendingRows);
+      for (const post of batch.posts) {
+        results.push({ asset: post.symbol, ticker: post.ticker, sig });
+        // Log only signatures and tickers.
+        console.log(`brace post ${post.symbol} ${post.ticker} ${sig}`);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      for (const post of batch.posts) {
+        results.push({ asset: post.symbol, error: message });
+        console.log(`brace post ${post.symbol} error`);
+      }
     }
   }
   return results;

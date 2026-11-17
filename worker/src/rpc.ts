@@ -93,3 +93,10 @@ export function rpcAwareFetch(base: typeof fetch = fetch): typeof fetch {
     return res;
   }) as typeof fetch;
 }
+
+/** Rotate the list so index `offset` becomes first, then wrap. Used to spread load across RPCs. */
+export function rotateUrls(urls: string[], offset: number): string[] {
+  if (urls.length <= 1) return [...urls];
+  const i = ((offset % urls.length) + urls.length) % urls.length;
+  return [...urls.slice(i), ...urls.slice(0, i)];
+}

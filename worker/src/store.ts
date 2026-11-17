@@ -1,3 +1,4 @@
+import type { PendingSig } from "./confirm.ts";
 export type PostRow = {
   tx: string;
   asset: string;
@@ -63,6 +64,9 @@ export interface BraceStore {
   saveRelayerRun(state: RelayerRunState): Promise<void>;
   loadRelayerRun(): Promise<RelayerRunState>;
   latestPostTsByAsset(): Promise<Record<string, number>>;
+  listPendingSigs(): Promise<PendingSig[]>;
+  addPendingSigs(rows: PendingSig[]): Promise<void>;
+  removePendingSigs(rows: { sig: string; asset: string }[]): Promise<void>;
 }
 
 export function buildHealthReport(run: RelayerRunState, latestPosts: Record<string, number>, nowSeconds: number): HealthReport {
@@ -93,6 +97,7 @@ export class MemoryStore implements BraceStore {
   posts: PostRow[] = [];
   actions: ActionRow[] = [];
   run: RelayerRunState = { lastRun: null, lastError: null, assets: [] };
+  pending: PendingSig[] = [];
 
   async upsertPost(row: PostRow): Promise<void> {
     this.posts = this.posts.filter((p) => !(p.tx === row.tx && p.asset === row.asset));
@@ -138,6 +143,22 @@ export class MemoryStore implements BraceStore {
       if (out[p.asset] == null || p.ts > out[p.asset]) out[p.asset] = p.ts;
     }
     return out;
+  }
+
+  async listPendingSigs(): Promise<PendingSig[]> {
+    return this.pending.map((p) => ({ ...p }));
+  }
+
+  async addPendingSigs(rows: PendingSig[]): Promise<void> {
+    for (const row of rows) {
+      this.pending = this.pending.filter((p) => !(p.sig === row.sig && p.asset === row.asset));
+      this.pending.push({ ...row });
+    }
+  }
+
+  async removePendingSigs(rows: { sig: string; asset: string }[]): Promise<void> {
+    const drop = new Set(rows.map((r) => `${r.sig}::${r.asset}`));
+    this.pending = this.pending.filter((p) => !drop.has(`${p.sig}::${p.asset}`));
   }
 }
 
@@ -259,5 +280,34 @@ export class D1Store implements BraceStore {
     const out: Record<string, number> = {};
     for (const row of res.results ?? []) out[row.asset] = row.last_ts;
     return out;
+  }
+
+  async listPendingSigs(): Promise<PendingSig[]> {
+    const res = await this.db
+      .prepare(`SELECT sig, asset, submitted_at FROM pending_sigs ORDER BY submitted_at ASC, asset ASC`)
+      .all<{ sig: string; asset: string; submitted_at: number }>();
+    return (res.results ?? []).map((r) => ({
+      sig: r.sig,
+      asset: r.asset,
+      submittedAt: r.submitted_at,
+    }));
+  }
+
+  async addPendingSigs(rows: PendingSig[]): Promise<void> {
+    if (!rows.length) return;
+    const stmts = rows.map((row) =>
+      this.db
+        .prepare(`INSERT OR REPLACE INTO pending_sigs (sig, asset, submitted_at) VALUES (?, ?, ?)`)
+        .bind(row.sig, row.asset, row.submittedAt),
+    );
+    await this.db.batch(stmts);
+  }
+
+  async removePendingSigs(rows: { sig: string; asset: string }[]): Promise<void> {
+    if (!rows.length) return;
+    const stmts = rows.map((row) =>
+      this.db.prepare(`DELETE FROM pending_sigs WHERE sig = ? AND asset = ?`).bind(row.sig, row.asset),
+    );
+    await this.db.batch(stmts);
   }
 }

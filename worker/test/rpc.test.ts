@@ -5,6 +5,7 @@ import {
   retryAfterMs,
   retryWithBackoff,
   rpcAwareFetch,
+  rotateUrls,
   withRpcFallback,
 } from "../src/rpc.ts";
 
@@ -99,5 +100,26 @@ describe("retry and fallback", () => {
       expect((err as { status: number }).status).toBe(429);
       expect((err as { retryAfterMs: number }).retryAfterMs).toBe(2000);
     }
+  });
+});
+
+
+describe("rotateUrls", () => {
+  const urls = [
+    "https://solana-devnet.api.onfinality.io/public",
+    "https://solana-devnet.gateway.tatum.io",
+  ];
+
+  test("rotates so offset becomes first and wraps", () => {
+    expect(rotateUrls(urls, 0)).toEqual(urls);
+    expect(rotateUrls(urls, 1)).toEqual([urls[1], urls[0]]);
+    expect(rotateUrls(urls, 2)).toEqual(urls);
+    expect(rotateUrls(urls, 5)).toEqual([urls[1], urls[0]]);
+  });
+
+  test("treats a negative offset modulo the length and leaves short lists alone", () => {
+    expect(rotateUrls(urls, -1)).toEqual([urls[1], urls[0]]);
+    expect(rotateUrls(["https://only.example"], 9)).toEqual(["https://only.example"]);
+    expect(rotateUrls([], 3)).toEqual([]);
   });
 });

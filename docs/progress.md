@@ -11,14 +11,14 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 5 | Invariants | done | 3,000 random actions, 7 invariants held | 680ad99 |
 | 6 | Reviews | passes 1-5 done; F1 and F2 fixed; program id switched to Frv6CVJK… | 49/49 tests (15 math, 12 adversarial, 1 fuzz, 12 oracle, 9 pool); F1/F2 marked in docs/reviews.md | (this commit) |
 | 7 | Devnet deploy | done | program Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC on devnet; deploy sig 3LSQqWgxJRpRxhFeF2v7Y2vmLxyvvX32uS6uVUXdzYdEuu4nDK3xcohKRdLHccUto3kYmhoxNmNW9azEp1VmS5DX; explorer https://explorer.solana.com/address/Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC?cluster=devnet ; SOL Feed confident; cron posted SOL/BTC/ETH/XRP/ZEC | (this commit) |
-| 8 | Relayer Worker | live (Grok); D1-backed /health; RPC 429 retries + fallback | https://brace-relayer.ohjaye0.workers.dev/health lastRun persisted; RPC_URLS onfinality then Tatum (Tatum sendTransaction verified from a Cloudflare Worker); cron still on | (this commit) |
+| 8 | Relayer Worker | live (Grok); per-tick RPC minimized (shared blockhash, packed posts, lazy confirm, RPC rotation) | worker vitest 55/55, tsc --noEmit exit 0; five live ticks at 05:24–05:28 WAT posted SOL/BTC/ETH/XRP/ZEC with lastError null; cron still on | (this commit) |
 | 9 | Streams + history | live (Grok); QuickNode Stream brace-program ingesting | worker vitest 41/41, tsc --noEmit exit 0; live /history?asset=SOL returns Stream-ingested rows (e.g. tx 4mv5vdLK…); /actions is [] (no pool txs yet) | (this commit) |
 | 10 | README | in progress (Claude, branch claude/readme) | | |
 | 11 | Risk board | claimed (Claude, after README; mockup first) | | |
 | 12 | Borrow flow | claimed (Claude, after risk board) | | |
 | 13 | Re-check | pending | | |
 
-Next up: Grok cutting per-tick RPC calls (shared blockhash, packed posts, lazy confirm, RPC rotation). Claude has claimed tasks 10–12.
+Next up: Claude has claimed tasks 10–12.
 
 ## Session log
 
@@ -43,3 +43,15 @@ Next up: Grok cutting per-tick RPC calls (shared blockhash, packed posts, lazy c
 - Nov 17, 05:00 Lagos: Grok finished Task 7. `anchor build --ignore-keys` exit 0; `cargo test -p brace` 52/52 (15 math, 12 adversarial, 1 fuzz / 3,000 actions, 12 oracle, 9 pool, 3 worker_ix). Program deployed at Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC, deploy sig 3LSQqWgxJRpRxhFeF2v7Y2vmLxyvvX32uS6uVUXdzYdEuu4nDK3xcohKRdLHccUto3kYmhoxNmNW9azEp1VmS5DX (https://explorer.solana.com/tx/3LSQqWgxJRpRxhFeF2v7Y2vmLxyvvX32uS6uVUXdzYdEuu4nDK3xcohKRdLHccUto3kYmhoxNmNW9azEp1VmS5DX?cluster=devnet). initialize 4H572EjqHbkJpHV9u2fmpiCFaZexg4stdS1naNkBZEoWYeKCc81QYPuHD9jSszj6isTgWJ1xAMespsMyYLFnWoUW, init_pool 31h9T3mWT3GyQehEcCT7AGxgJ8Huyc2hpjVyeKGzYN2JXBGrvoZDpyEkM8NKCxfgpFzpRuEe2WxkNvam3nH3ryhB, first SOL post_quotes 2LsRV4nhZFvp9Qx1DesbFjx9kivt8xfd7j9zLkK21PYZYA9otUk41qBfaChNgavbK5oXrnpRt6LvJ9q5Gv86awNL (confident). Relayer cron enabled; api.devnet.solana.com 403s Cloudflare IPs, so RPC_URL was switched to https://solana-devnet.api.onfinality.io/public. On-chain Feed snapshot at 05:00:23 Lagos (Africa/Lagos, UTC+1), all five confident: SOL sigma_bps=8651 max_ltv=6913; BTC 4770 / 7400; ETH 7668 / 7036; XRP 8237 / 6965; ZEC 18376 / 5691. Balances after the 1 SOL demo transfer: deployer 2.180830884 SOL, relayer 0.99390872 SOL, Phantom CM7My7aNNR6Kb6rTjbVE4cjTt3zaGS6f22FT1BVYwSJP 1 SOL. /health still returns lastRun=null because that field is in-isolate memory; cron logs and Feed accounts are the live proof.
 
 - Nov 17, 05:14 Lagos: Grok persisted relayer /health state in D1 (lastRun, per-asset lastSig, lastError, feed ageSecs) and added RPC 429 retries plus RPC_URLS fallback. Live probe from a Cloudflare Worker: api.devnet.solana.com is 403; OnFinality often 429s under load; https://solana-devnet.gateway.tatum.io accepted getLatestBlockhash and sendTransaction on devnet. Cron kept on. /history?asset=SOL is ingesting live Stream rows; /actions is still [].
+
+- Nov 17, 05:29 Lagos: Grok cut per-tick RPC calls on the relayer: one shared getLatestBlockhash, skipPreflight fire-and-forget sends, lazy getSignatureStatuses confirmation, RPC rotation across OnFinality and Tatum, and packed post_quotes when the signed tx fits in 1232 bytes (CU is not the limiter: 80k budget/post, 5 posts = 410k vs 1.4M). Measured packing: 16-quote posts pack 3+2 (1182 and 882 bytes); typical fixture counts pack 4+1 (1098 and 462 bytes). Live books during the watch were small enough that all five assets shared one signature each tick. worker vitest 55/55 (was 41/41); tsc --noEmit exit 0. Redeployed via the Cloudflare connector keeping cron, RELAYER_SECRET, STREAMS_SINK_SECRET, D1 brace, and RPC_URLS. pending_sigs table migrated. Five consecutive live ticks after deploy (Africa/Lagos, UTC+1), lastError null, all five assets posted:
+
+  1. lastRun 2026-11-17 05:24:17 WAT, sig 3LXtLPVPqx7pEk12yV3QvJ2HP35gVdmhwkBskti92uayR7v8Tx3Dbm8dEGn5j52TG7r2gjihkPootZKsMEeZS988, feed ages SOL/BTC/ETH/XRP/ZEC 5s.
+
+  2. lastRun 2026-11-17 05:25:17 WAT, sig 3Jf62aqVPEX2whMdKttw76mrC5W9dRr4mNx87JEAiUbM6mRZxjqqB9awSVmYbKisaqAWoRpBxj3SfQ62JExgKC5w, ages 3s.
+
+  3. lastRun 2026-11-17 05:26:17 WAT, sig 3M5yvqVnzbsFYmZJF5hRZqPsyBmnznPqeFQvuGSuKX1cz7UpAMfgD1oxqPcvAFthcqobJwvsHvSnUFLYY4seUJoo, ages SOL/BTC/ETH/XRP 0s, ZEC 59s (health age still on the prior Stream post; ZEC lastSig already updated; age was 3s by the next tick).
+
+  4. lastRun 2026-11-17 05:27:18 WAT, sig 4b6DzJcqPuYJ7FrtYQeBHfGAq2GKgoY5yBGUtdDft6K8qjr4VeSQZnuCMFnQpAjtbS8uba8E4YE1ULgi59TXzsXf, ages 3s.
+
+  5. lastRun 2026-11-17 05:28:18 WAT, sig nwkApE7EV5VbmcHX6uFjt74C3281EvGF8MiRvLWGndLPPr9YuGT9eEHeX8VNWuD1bxXZhknjdsQ9thWDCJ1FMH5, ages 8s.
