@@ -1,16 +1,18 @@
 # Brace Gemini relayer. Do not put secrets or keypairs in this file.
-# Deploy (later, needs Oh-Jay's Cloudflare token + Account ID):
-#   wrangler secret put RELAYER_SECRET
-#   CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npx wrangler deploy
+# Account ID is not secret. RELAYER_SECRET is set via the Workers secrets API, never committed.
+# Deploy through the Cloudflare Workers scripts API (see scripts/cf-deploy-relayer.mjs).
+# There is no Cloudflare API token in this environment; do not wrangler deploy unless a token is added later.
 name = "brace-relayer"
 main = "src/index.ts"
 compatibility_date = "2026-11-17"
-# Placeholder: replace with the Cloudflare Account ID before deploy.
-account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+account_id = "f5541f7a5c900e912b145e07fbc95d63"
 
 [vars]
 PROGRAM_ID = "Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC"
 RPC_URL = "https://api.devnet.solana.com"
 
-[triggers]
-crons = ["* * * * *"]
+# Minute cron is the intended schedule, but do NOT enable it until Task 7
+# (program on devnet and relayer funded). Pending API call is documented
+# in scripts/cf-deploy-relayer.mjs.
+# [triggers]
+# crons = ["* * * * *"]

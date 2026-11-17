@@ -15,13 +15,18 @@ npx tsc --noEmit
 
 Fixtures in `test/fixtures/` were fetched from the public Gemini API on 2026-11-17, 03:12 UTC.
 
-## Deploy (gated: Cloudflare token + Account ID)
+## Deploy
 
-1. Put the real Account ID in `wrangler.toml` (`account_id` is currently a placeholder).
-2. `wrangler secret put RELAYER_SECRET` — base58 64-byte relayer secret key. Never commit it.
-3. `CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npx wrangler deploy`
+Account ID (not secret) is in `wrangler.toml`. There is no Cloudflare API token in this environment, so deploys go through the Workers scripts API (see `scripts/cf-deploy-relayer.mjs`), not `wrangler deploy`.
 
-Vars already in `wrangler.toml` (not secret): `PROGRAM_ID`, `RPC_URL`. Optional override: set `RPC_URL` to a QuickNode (or other) devnet URL.
+1. `node ../scripts/cf-deploy-relayer.mjs` — local minify bundle only (dry-run).
+2. Upload `dist/index.js` as Worker `brace-relayer` with vars `PROGRAM_ID` and `RPC_URL`, compatibility_date `2026-11-17`. Do not attach cron.
+3. PUT the `RELAYER_SECRET` secret (base58 64-byte relayer key) via the secrets API. Never commit it.
+4. Enable the workers.dev subdomain for the script.
+
+Do not enable the minute cron until Task 7 (program on devnet and relayer funded). The exact later call is in `scripts/cf-deploy-relayer.mjs`.
+
+Optional later: set `RPC_URL` to a QuickNode (or other) devnet URL.
 
 ## Endpoints
 
