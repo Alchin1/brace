@@ -1,36 +1,147 @@
-# Demo script
+# Demo script (phone, 2:30)
 
 **What the video must prove:** Gemini's prediction-market odds set a Solana lending limit live, and the chain enforces it.
 
-Target: 2:30 (event allows 2 to 3 minutes). Narration at about 2.4 words per second.
+- Recorded on a Galaxy S25 with the built-in screen recorder. No laptop needed.
+- Length: exactly 2:30. The rules allow 2 to 3 minutes, on YouTube or Google Drive, viewable by judges.
+- Narration runs at about 2.3 words per second. Every voiceover line below fits its slot at that pace.
+- Numbers on screen are live. Read them off the screen, never from this script.
 
-## Time budget
+## 1. Night before (about 15 minutes)
 
-| Criterion | Seconds |
-|---|---|
-| Demo (working product first) | 45 |
-| Technical execution (onchain math, explorer proof) | 40 |
-| Innovation (prediction markets as a risk oracle) | 25 |
-| Impact and potential (long-tail collateral, CPI) | 25 |
-| Product and UX (phone, no wallet needed) | 15 |
+**Phone setup**
+- Do Not Disturb on. Notifications hidden. Battery above 50%.
+- Phone in light mode, so the board matches the README screenshots.
+- Close every other app and browser tab.
+- Screen recorder settings (pull down Quick settings twice, long-press Screen recorder):
+  - Sound: **Media sounds and mic** (you narrate live).
+  - Video quality: 1080p.
+  - Show taps and touches: on. Judges can see what you tap.
 
-## Pre-flight
+**Phantom on the phone (devnet only, never a wallet with real money)**
+1. Install Phantom from the Play Store.
+2. Pick one:
+   - **Reuse the demo wallet** `CM7My7aNN9RKb6rTJvBE4cjTt3zaGS6f22FT1BVYwSJP` (import it in Phantom from your own backup; never paste the recovery phrase anywhere else). It already has a position with 0.5 SOL deposited, so the deposit step is optional.
+   - **Or create a new wallet** in Phantom. Write the recovery phrase on paper, not in a chat or note app.
+3. In Phantom, open Settings, then Developer settings. Turn **Testnet mode** on and choose **Solana Devnet**. These are the same words the borrow page shows under "Before you start".
+4. Copy your wallet address (tap the account name at the top).
 
-- Live URL loads; all five feeds (SOL, BTC, ETH, XRP, ZEC) updated in the last 2 minutes; `scripts/verify.sh --live` checks this
-- Burner Phantom wallet on devnet with at least 0.6 SOL (0.5 deposit plus fees) (public address only on screen)
-- Do Not Disturb on, notifications off, nothing private on screen
-- Explorer tabs open: program, latest post_quotes tx, the failed borrow tx
+**Devnet SOL**
+1. In Chrome on the phone, open `https://faucet.solana.com`.
+2. Paste your address, pick **Devnet**, and request SOL. You need at least **0.6 SOL** (0.5 to deposit plus fees). The faucet may ask you to sign in with GitHub or wait between requests.
+3. Back in Phantom, check that the SOL shows up while Testnet mode is on.
 
-## Shot list
+**Live check (5 minutes before recording)**
+- Open `https://brace-ivory.vercel.app`. All five rows (SOL, BTC, ETH, XRP, ZEC) should say updated seconds ago.
+- If the board says "Live limits are not loading", tap **Try again**. If it is still down after 5 minutes, see docs/runbook.md before recording.
 
-| # | Sec | On screen | Narration cue | Proof shown |
-|---|---|---|---|---|
-| 1 | 0 to 10 | Risk board on phone | "Lending limits are set by vote. Brace sets them from live prediction markets." | Five assets, updated seconds ago |
-| 2 | 10 to 30 | Tap SOL: Gemini ladder, implied vol, max LTV | "Gemini traders price SOL's next move. Brace turns that into a borrowing limit." | Ladder and limit |
-| 3 | 30 to 55 | Phantom: borrow above limit, fails; borrow under, succeeds | "Over the limit: the chain says no. Under it: approved." | `RiskTightened` error, explorer |
-| 4 | 55 to 95 | Explorer: post_quotes tx and logs | "The relayer posts raw quotes. The volatility math runs onchain, so anyone can check it." | Tx logs with sigma and limit |
-| 5 | 95 to 120 | History timeline (Streams) | "QuickNode Streams records every update and every blocked borrow." | Timeline, blocked feed |
-| 6 | 120 to 145 | ZEC vs BTC limits; accuracy number | "ZEC has no options market. Gemini prices it anyway. Our hit rate this week: [Alchin's measured number; cut this line if there is none]." | Board + tracker result |
-| 7 | 145 to 150 | Repo link | "Odds can only tighten limits, never liquidate anyone. That's Brace." | URL |
+**Rehearse once** with the stopwatch, reading the lines out loud. Then record for real.
 
-Narration is finalized after the build, using real numbers only.
+## 2. How to record
+
+Record three clips, then join them. One mistake costs one clip, not the whole video.
+
+| Clip | Shots | Length | Where |
+|---|---|---|---|
+| A | 1 to 3 | 0:42 | Chrome |
+| B | 4 to 6 | 0:58 | Phantom's in-app browser |
+| C | 7 to 9 | 0:50 | Phantom's in-app browser, then Chrome |
+
+Join the clips in Samsung Gallery's built-in video editor (Studio). Trim dead air at the start and end of each clip so the total lands on 2:30. The menu names can differ between One UI versions; any phone video editor that joins clips works.
+
+## 3. Shot list
+
+Total: 2:30. Times are cumulative.
+
+### Clip A (Chrome)
+
+**Shot 1 · 0:00 to 0:12 (12 s) · the board**
+- URL: `https://brace-ivory.vercel.app`
+- On screen: the risk board, five assets, "updated seconds ago".
+- Tap: nothing. Let it sit.
+- Voiceover: "lending apps set borrowing limits by vote, and those limits rarely change. brace sets them every minute, from gemini prediction markets, onchain on solana."
+
+**Shot 2 · 0:12 to 0:32 (20 s) · one asset**
+- Tap: the **SOL** row. URL becomes `https://brace-ivory.vercel.app/asset/SOL`.
+- On screen: the Gemini ladder chart, implied volatility, max LTV.
+- Tap: scroll slowly down to the ladder chart.
+- Voiceover: "gemini traders bet on where sol will be at expiry. those odds form a curve. brace fits that curve onchain, gets the implied volatility, and turns it into a borrowing limit. more volatility, lower limit."
+
+**Shot 3 · 0:32 to 0:42 (10 s) · ZEC vs BTC**
+- Tap: back to the board (the Brace name at the top).
+- On screen: ZEC's limit next to BTC's.
+- Voiceover: "zcash has no options market, but gemini prices it. so zec gets a tighter limit than bitcoin, right now."
+- Check before saying it: ZEC's max LTV should be lower than BTC's on screen. It has been all week, but if it is not, say "every asset gets its own limit, right now" instead.
+
+### Clip B (Phantom in-app browser)
+
+**Shot 4 · 0:42 to 1:00 (18 s) · connect and deposit**
+- Open Phantom, tap the browser tab, go to `https://brace-ivory.vercel.app/borrow`.
+- Tap: **Connect**, choose Phantom, approve.
+- New wallet: tap **Open position** and approve, then **Deposit** 0.5 SOL and approve. Reused wallet: skip deposit, the position is already there.
+- Voiceover: "now a real borrow, on a phone, with phantom on devnet. i deposit half a sol as collateral. the program prices it with the same live feed."
+- If the new-wallet steps run long, cut the waiting in the editor. Keep the total at 2:30.
+
+**Shot 5 · 1:00 to 1:22 (22 s) · over the limit, rejected**
+- Tap: drag the borrow amount up until the page says it is over the live limit.
+- Tap: **Submit anyway**. The note under it says Phantom will warn the transaction may fail.
+- In Phantom: the warning appears. Tap the option that confirms anyway, then approve.
+- On screen: "Rejected onchain: this borrow would put you at X% against a live limit of Y%."
+- Voiceover: "this is over the limit. phantom warns me, and i send it anyway. solana rejects it. not the website, the program itself, using the limit gemini's odds set a minute ago."
+- Confirm within about 30 seconds of tapping Submit anyway. A slow confirm lets the transaction expire (see Fallbacks).
+
+**Shot 6 · 1:22 to 1:40 (18 s) · under the limit, approved**
+- Tap: lower the amount to something small (for example 2 test USD). Tap **Borrow**, approve in Phantom.
+- On screen: the success message and the row in **Recent actions**.
+- Voiceover: "a smaller borrow, under the limit. approved. same program, same feed, a different answer, because the risk is different."
+
+### Clip C (Phantom browser, then Chrome)
+
+**Shot 7 · 1:40 to 1:58 (18 s) · proof on Explorer**
+- Tap: **Explorer** next to the rejected row in Recent actions. Solana Explorer opens on devnet.
+- Tap: scroll down to **Program Logs**.
+- On screen: `brace blocked ltv=… limit=…`.
+- Voiceover: "here is the rejected transaction on solana explorer. the program log shows the ltv i asked for and the live limit. anyone can check this."
+
+**Shot 8 · 1:58 to 2:18 (20 s) · history and accuracy**
+- URL: `https://brace-ivory.vercel.app/history`
+- On screen: the limit chart over time and the list of blocked and allowed borrows.
+- Voiceover, part 1 (about 10 s): "quicknode streams records every limit update and every borrow, including the failed ones. that history is how we check the oracle."
+- Voiceover, part 2 (about 10 s), pick one:
+  - With Alchin's number: "**[[HIT RATE FROM ALCHIN: say the exact measured result and what it measures, for example over how many windows]]**."
+  - Without a number: "next, we are scoring these limits against what prices actually did."
+- Never say a number Alchin has not measured and written down.
+
+**Shot 9 · 2:18 to 2:30 (12 s) · close**
+- URL: `https://github.com/ohjay-official/brace` (open in Chrome).
+- On screen: the README top, with the live app link.
+- Voiceover: "odds can only tighten a limit, never liquidate anyone. it is open source, live on devnet, and the link is below. this is brace."
+
+## 4. Fallbacks
+
+**Transaction expired** ("Failed: the transaction expired before it landed. Try again.")
+1. Tap the same button again and confirm faster in Phantom.
+2. If it fails twice, wait 1 minute (devnet can lag), then retry.
+3. Still failing: stop the clip, re-record clip B later. Do not fake it. As a last resort, in shot 7 open the verified rejected borrow from the README instead: `https://explorer.solana.com/tx/59uvMm48LV248sXSnvTV9wb8ZpVZmB8Q3ffiAsq3NU97wjU3wuSGD4EBSihWYpm1qZhrQNATA5rz5v1GWH6RVHnP?cluster=devnet`, and say "this is one we sent earlier".
+
+**Phantom shows no confirm-anyway option for the over-limit borrow:** the page cannot force it. Record shot 5 with the warning on screen, cancel, and say "phantom's simulation already sees the program would reject it". Then show the README rejected transaction in shot 7.
+
+**"Not enough devnet SOL":** go back to faucet.solana.com, then re-record clip B.
+
+**Board says devnet is not answering:** tap **Try again**. Public devnet RPC sometimes stalls for a minute. If it lasts more than 5 minutes, check the relayer at `https://brace-relayer.ohjaye0.workers.dev/health` and docs/runbook.md.
+
+**Over 2:30 after joining:** trim pauses between taps first. Do not speed up the voice.
+
+## 5. Upload to YouTube from the phone (unlisted)
+
+1. Open the YouTube app, signed in to the account you want on the submission.
+2. Tap **+** (Create), then **Upload a video**, then pick the joined 2:30 video.
+3. Title: `Brace: prediction-market risk limits for Solana lending (UBC 2026)`.
+4. Description: paste the live app link `https://brace-ivory.vercel.app` and the repo link `https://github.com/ohjay-official/brace`.
+5. Visibility: **Unlisted**. Unlisted still lets anyone with the link watch it, which judges need. Do not pick Private.
+6. Audience: **No, it's not made for kids**.
+7. Upload. Wait until YouTube finishes processing HD (a few minutes).
+8. Test the link logged out: copy the share link, open it in a Chrome incognito tab, and check it plays with sound.
+9. Paste the link into Devpost's video field and into docs/submission-draft.md (or send it to whoever is updating the repo).
+
+Due: video uploaded by **Thursday night, Lagos time**. Devpost submission: aim for **Friday Nov 20, 3:00 PM Lagos (WAT)**. The hard deadline is 12:00 PM CST, which is **7:00 PM Lagos (WAT)**.

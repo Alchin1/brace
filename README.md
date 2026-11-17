@@ -131,9 +131,10 @@ Sources were fetched on Nov 17, 2026. Each competitor cell is as that vendor's c
 - `post_quotes` fits the ladder onchain; `borrow` and `withdraw` check the live limit; failed borrows log `brace blocked ltv=… limit=…`.
 
 **QuickNode Streams**
-- Stream name `brace-program`, Solana devnet, filtered to program `Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC`.
+- Stream name `brace-program`, Solana devnet, **Block** dataset, filtered to program `Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC`.
 - The filter in [`worker/filters/brace-program.js`](worker/filters/brace-program.js) keeps successful and failed transactions that touch the program, and skips empty blocks.
 - Destination: the relayer Worker webhook at `/streams`. The Worker stores rows in D1 and serves `GET /history?asset=SOL` (oldest-first; `sigma_annual` and `effective_ltv` are 0-1 ratios) and `GET /actions` (`ltv` and `limit` are basis points; `ok` is a boolean).
+- Why Streams: a rejected borrow changes no account, so reading program state can never show it. The Block dataset includes failed transactions with their logs, so the `brace blocked ltv=… limit=…` line is captured as it happens, without polling an RPC.
 
 ## How It Works
 
@@ -159,6 +160,14 @@ Each Gemini contract "price ≥ K at expiry" trades at a probability. Under a lo
 4. Stale data: hold the last limit for 5 minutes, then step down 2.5 points every 5 minutes, never below 50% (or the last limit if lower). After an hour, borrowing and liquidation pause.
 
 </details>
+
+### Economic design and risk assumptions
+
+- **Collateral and debt.** Users deposit devnet SOL and borrow a test USD token (6 decimals) minted by the pool. Collateral is valued at Gemini's SOL spot price. Interest is 0%: this demonstrates the risk limit, not a full market.
+- **Borrow limit.** `limit = 80% x (1 - 3 x s)`, where `s` is the 24-hour move implied by Gemini's ladder. It is clamped between 30% and a 75% governance cap, so the market can only tighten a limit, never loosen it past what governance set.
+- **Liquidation.** Fixed at 80% LTV, never driven by odds. A liquidator repays the full debt and receives the collateral plus a 5% bonus.
+- **Assumptions.** Price at expiry is roughly lognormal, so the ladder's probabilities fit a straight line after a probit transform. Three 24-hour standard deviations is the safety margin. Gemini quotes are thin, so a post counts only with at least 3 two-sided quotes, spreads of 15 cents or less, expiry between 15 minutes and 72 hours, and spot within 3% of the ladder's implied median.
+- **When the assumptions fail.** Unconfident or stale data holds the last limit for 5 minutes, then steps it down 2.5 points every 5 minutes to a 50% floor (or the last limit, if lower), and pauses borrowing and liquidation after an hour. The relayer is trusted to post real quotes (see Known Limitations).
 
 ## Security
 
