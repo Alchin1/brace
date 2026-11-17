@@ -18,7 +18,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 12 | Borrow flow | built (Claude); needs Oh-Jay's Phantom phone check | devnet simulation: over-limit borrow fails 6005 'brace blocked ltv=7987 limit=6987', under-limit succeeds | claude/risk-board merged |
 | 13 | Re-check | prep recorded (Grok); full re-check after the UI lands | 2026-11-17 05:46 WAT: `anchor build --ignore-keys` exit 0 (cargo-build-sbf LTO warning only); `cargo test -p brace` 52/52 (15 math, 12 adversarial, 1 fuzz 51.45s, 12 oracle, 9 pool, 3 worker_ix); worker vitest 55/55; tsc --noEmit exit 0; program live, all five Feeds confident; see session log and docs/reviews.md | (this commit) |
 
-Next up: Claude has claimed tasks 10–12 (stay off README.md and app/**). Full Task 13 re-check waits for the UI. Keyed devnet RPC (QuickNode/Helius) is the real relayer durability upgrade; no independent third public RPC works from Cloudflare IPs.
+Next up: Grok owns everything from Nov 17 10:05 Lagos. See docs/HANDOFF.md Part C (README pass 2, history page, Phantom check, re-check, video, Devpost).
 
 ## Session log
 
