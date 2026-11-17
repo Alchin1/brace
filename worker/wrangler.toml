@@ -9,15 +9,14 @@ account_id = "f5541f7a5c900e912b145e07fbc95d63"
 
 [vars]
 PROGRAM_ID = "Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC"
-RPC_URL = "https://api.devnet.solana.com"
+RPC_URL = "https://solana-devnet.api.onfinality.io/public"
+# Official https://api.devnet.solana.com returns 403 (IP/provider blocked) from Cloudflare Worker IPs.
 
-# Minute cron is the intended schedule, but do NOT enable it until Task 7
-# (program on devnet and relayer funded). Pending API call is documented
-# in scripts/cf-deploy-relayer.mjs.
-# [triggers]
-# crons = ["* * * * *"]
+# Minute cron is enabled (Task 7). Keep this on future deploys or the live posts stop.
+[triggers]
+crons = ["* * * * *"]
 
-# D1 is used by /streams, /history and /actions. Cron stays off until Task 7.
+# D1 is used by /streams, /history and /actions.
 [[d1_databases]]
 binding = "DB"
 database_name = "brace"
