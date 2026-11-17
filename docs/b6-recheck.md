@@ -61,18 +61,18 @@ Run by Grok on Tue Nov 17, 2026, 12:12 to 12:45 Africa/Lagos (WAT, UTC+1), again
 
 | # | Question | Answer |
 |---|---|---|
-| 1 | Complete rules read, every requirement has proof | no: the hackathon guide doc is still unread (Oh-Jay to paste) |
+| 1 | Complete rules read, every requirement has proof | yes (Nov 17, 15:30 WAT): the official guide and workshop schedule are public Google Docs linked from Devpost and were read in full. Every track, chain-award and bounty requirement is mapped to proof in `docs/submission-draft.md`. Two README gaps it found (DeFi economic design and risk assumptions; Stream dataset and why) were fixed in 7c4cb2f. Open items needing people are lines 2, 3 and 14 |
 | 2 | Core journey works for a new user on a real phone, mobile data, production | no: only Oh-Jay has run it (B3); needs one outside person |
 | 3 | Every claim in README, video, post and form has proof | no: README and draft yes; video not recorded yet (B7) |
 | 4 | No secret in repo, history, build output or logs | yes |
 | 5 | Every third-party call has a timeout, failure message, tested fallback | yes |
 | 6 | Safe against double taps, retries, refreshes, two users | no: code and tests yes; two real users at once not run |
-| 7 | Full suite passes and manual core run repeated after the last change | no: suites yes; Phantom borrow not repeated after today's Worker change |
+| 7 | Full suite passes and manual core run repeated after the last change | no: suites yes. Oh-Jay's Phantom run at 13:03 to 13:04 WAT (blocked, then a 2 test USD borrow, both in `/actions`) came after the Worker change but before the B6b front-end deploy at 13:24, so one more run on the phone is needed (the video take counts) |
 | 8 | Clean-machine setup from README works; verify passes | yes (fresh clone; `scripts/verify.sh` exit 0) |
 | 9 | Production env vars, domain, routes, certificates checked live | yes |
 | 10 | AI and automation run on adversarial and empty inputs, fail safely | yes |
 | 11 | Public previews, icons and links show current assets | yes (B6b): favicon and og/twitter image live, tags on every page; a paste test in X or WhatsApp still needs a person |
-| 12 | Alerts, rollback and an expiry calendar exist | no: hourly check and expiry list yes; no phone alert, rollback not drilled |
+| 12 | Alerts, rollback and an expiry calendar exist | no, nearly: Worker rollback drilled live at 15:33 to 15:37 WAT (v8 to v7 and back, health green both times), Vercel rollback written up, deadline and expiry calendar in `docs/runbook.md`, hourly check exists. Missing: an alert that reaches a phone |
 | 13 | Anything irreversible has a written go/no-go and was rehearsed | yes: program is upgradeable on devnet; Devpost fields rehearsed in `docs/submission-draft.md`; this table is the go/no-go |
 | 14 | Submitted once, in the required form, copy saved | no: due Fri Nov 20, target 3:00 PM WAT |
 
@@ -80,3 +80,12 @@ Run by Grok on Tue Nov 17, 2026, 12:12 to 12:45 Africa/Lagos (WAT, UTC+1), again
 
 Approved by Oh-Jay. Commits a762ed7 and 93ea3bc. Every browser request now has a timeout (devnet RPC 10 s through the web3.js Connection on the board and the borrow page; relayer and `/api/ladder` 10 s) and a plain message. Under **Submit anyway**: "Phantom will warn that this transaction may fail. Confirm it anyway to see the program reject it onchain." Fresh-clone `scripts/verify.sh` at a762ed7: exit 0 (cargo 52/52, worker 76/76, app 72/72, tsc clean, build ok, live feeds 34 s old). Go/no-go is now 7 yes, 7 no.
 
+
+## B7 to B9 and ops (Nov 17, 15:27 to 15:45 WAT)
+
+- `docs/demo-script.md`: phone shot list, exactly 2:30, nine shots in three clips, Phantom mobile setup, fallbacks, YouTube unlisted checklist.
+- `docs/submission-draft.md`: every Devpost field paste-ready with character counts, checked against the public guide; list of what only the team can fill.
+- `docs/pitch.md`: 60 s and 3 min pitches, finalist 5 min plan, judge Q&A, one slide of sourced numbers (unknowns TBD).
+- `docs/runbook.md`: Worker and Vercel rollback, the live Worker rollback drill, deadline and expiry calendar, devnet SOL runway.
+- Fresh clone of 7c4cb2f, `scripts/verify.sh`: exit 0 (cargo 52/52 with the fuzz run in 55.73 s, worker 76/76, app 72/72, tsc clean, build ok, live feeds 18 s old). Vercel deployed 7c4cb2f at 15:39 WAT.
+- Go/no-go is now 8 yes, 6 no. The no's: 2 (outside tester on a phone), 3 (video), 6 (two users at once), 7 (one phone run after B6b), 12 (phone alert), 14 (submit).
