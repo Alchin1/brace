@@ -9,7 +9,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 3 | Oracle feed | done | 11/11 oracle tests; real SOL ladder logs sigma_bps=8272 max_ltv=6960 | (this commit) |
 | 4 | Pool | done | 9/9 pool tests (borrow blocked above live limit, stale step-down, liquidation only above 80%, supply = debts) | (this commit) |
 | 5 | Invariants | done | 3,000 random actions, 7 invariants held | 680ad99 |
-| 6 | Reviews | passes 1-4 done and fixed (9b432ef, 47 tests pass); pass 5 to re-run | | 9b432ef |
+| 6 | Reviews | in progress (Grok) — pass 5 | | 9b432ef |
 | 7 | Devnet deploy | pending (needs devnet SOL) | | |
 | 8 | Relayer Worker | pending (needs Cloudflare token) | | |
 | 9 | Streams + history | pending (needs QuickNode key) | | |
