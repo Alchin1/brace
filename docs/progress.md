@@ -11,14 +11,14 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 5 | Invariants | done | 3,000 random actions, 7 invariants held | 680ad99 |
 | 6 | Reviews | passes 1-5 done; F1 and F2 fixed; program id switched to Frv6CVJK… | 49/49 tests (15 math, 12 adversarial, 1 fuzz, 12 oracle, 9 pool); F1/F2 marked in docs/reviews.md | (this commit) |
 | 7 | Devnet deploy | pending (needs devnet SOL) | | |
-| 8 | Relayer Worker | pending (needs Cloudflare token) | | |
+| 8 | Relayer Worker | in progress (Grok) | | |
 | 9 | Streams + history | pending (needs QuickNode key) | | |
 | 10 | README | pending | | |
 | 11 | Risk board | pending (needs Vercel token) | | |
 | 12 | Borrow flow | pending | | |
 | 13 | Re-check | pending | | |
 
-Next up: Task 7 devnet deploy (needs funded keys), then Task 8 relayer Worker.
+Next up: Grok building Task 8 relayer Worker; Task 7 still needs funded keys.
 
 ## Session log
 
