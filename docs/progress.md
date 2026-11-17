@@ -16,9 +16,9 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 10 | README | in progress (Claude, branch claude/readme) | | |
 | 11 | Risk board | claimed (Claude, after README; mockup first) | | |
 | 12 | Borrow flow | claimed (Claude, after risk board) | | |
-| 13 | Re-check | pending | | |
+| 13 | Re-check | prep in progress (Grok); full re-check after the UI lands | | |
 
-Next up: Claude has claimed tasks 10–12.
+Next up: Grok is on Task 13 re-check prep (gates, live devnet checks, third public RPC fallback). Claude has claimed tasks 10–12 (stay off README.md and app/**).
 
 ## Session log
 
