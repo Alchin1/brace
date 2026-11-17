@@ -3,6 +3,7 @@
 // lib/brace.test.ts checks it byte-for-byte against Anchor's IDL coder.
 
 import { Connection, PublicKey } from "@solana/web3.js";
+import { friendlyNetError, RPC_TIMEOUT_MS, timeoutFetch } from "./net";
 
 export const PROGRAM_ID = new PublicKey("Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC");
 export const SYMBOLS = ["SOL", "BTC", "ETH", "ZEC", "XRP"] as const;
@@ -215,13 +216,13 @@ export type BoardState =
 
 /** One RPC call: program account, Config and every Feed. */
 export async function fetchBoard(rpcUrl: string): Promise<BoardState> {
-  const conn = new Connection(rpcUrl, "confirmed");
+  const conn = new Connection(rpcUrl, { commitment: "confirmed", fetch: timeoutFetch(RPC_TIMEOUT_MS) });
   const keys = [PROGRAM_ID, configPda(), ...SYMBOLS.map((s) => feedPda(s))];
   let infos;
   try {
     infos = await conn.getMultipleAccountsInfo(keys);
   } catch (e) {
-    return { kind: "error", message: e instanceof Error ? e.message : String(e) };
+    return { kind: "error", message: friendlyNetError(e, "Solana devnet") };
   }
   const [program, config, ...feedInfos] = infos;
   if (!program || !program.executable) return { kind: "not-deployed" };
@@ -241,8 +242,8 @@ export async function fetchBoard(rpcUrl: string): Promise<BoardState> {
   });
   try {
     return { kind: "ok", config: decodeConfig(config.data), feeds, fetchedAt: Date.now() };
-  } catch (e) {
-    return { kind: "error", message: e instanceof Error ? e.message : String(e) };
+  } catch {
+    return { kind: "error", message: "The Brace config account on devnet could not be read." };
   }
 }
 

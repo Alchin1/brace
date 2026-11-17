@@ -7,10 +7,30 @@ import { Footer, Header } from "@/components/Chrome";
 const sans = Geist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-geist-sans", display: "swap" });
 const mono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-geist-mono", display: "swap" });
 
+const SITE_URL = "https://brace-ivory.vercel.app";
+const TITLE = "Brace: lending limits from live prediction-market odds";
+const DESCRIPTION =
+  "Brace reads Gemini's regulated prediction markets every minute, computes implied volatility onchain on Solana, and sets how much you can borrow.";
+
+// opengraph-image.png, twitter-image.png, icon.png, apple-icon.png and favicon.ico in this folder
+// are picked up by Next and added to the head automatically.
 export const metadata: Metadata = {
-  title: { default: "Brace: lending limits from live prediction-market odds", template: "%s | Brace" },
-  description:
-    "Brace reads Gemini's regulated prediction markets every minute, computes implied volatility onchain on Solana, and sets how much you can borrow.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: TITLE, template: "%s | Brace" },
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "Brace",
+    title: TITLE,
+    description: DESCRIPTION,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {

@@ -20,7 +20,7 @@ import {
   type Position,
 } from "@/lib/position";
 import { borrowIxs, depositIx, openPositionIx, positionPda, repayIx, usdAta, withdrawIx } from "@/lib/tx";
-import { useBoard } from "../BoardProvider";
+import { RetryButton, useBoard } from "../BoardProvider";
 import { Gauge, StatusCell } from "../Instruments";
 
 const SOL_DECIMALS = 9;
@@ -245,7 +245,15 @@ export function BorrowApp({ walletError, clearWalletError }: { walletError: Wall
     setPicking(true);
   };
 
-  const reading = (
+  const rpcDown = state?.kind === "error" ? state.message : null;
+  const reading = rpcDown ? (
+    <div className="tx-line warn reading-error" role="alert">
+      <p>
+        The live SOL limit is not loading. {rpcDown} Borrowing needs devnet, so wait a moment and try again.
+      </p>
+      <RetryButton />
+    </div>
+  ) : (
     <p className="reading" aria-label="SOL feed right now">
       <span>
         SOL live limit <strong>{limit === null ? "--" : pct1(limit)}</strong>
@@ -476,6 +484,11 @@ export function BorrowApp({ walletError, clearWalletError }: { walletError: Wall
             </button>
           )}
         </div>
+        {overLimit && (
+          <p className="step-note">
+            Phantom will warn that this transaction may fail. Confirm it anyway to see the program reject it onchain.
+          </p>
+        )}
       </>
     ),
   });

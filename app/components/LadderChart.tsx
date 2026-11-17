@@ -13,6 +13,7 @@ import {
   sigmaT,
 } from "@/lib/chart";
 import type { LadderQuote } from "@/app/api/ladder/route";
+import { fetchWithTimeout } from "@/lib/net";
 
 type Ladder = { state: "loading" | "ok" | "unavailable"; quotes: LadderQuote[] };
 
@@ -23,7 +24,7 @@ function useLadder(ticker: string | null): Ladder {
     let alive = true;
     const load = async () => {
       try {
-        const res = await fetch(`/api/ladder?ticker=${encodeURIComponent(ticker)}`);
+        const res = await fetchWithTimeout(`/api/ladder?ticker=${encodeURIComponent(ticker)}`);
         const body = (await res.json()) as { quotes?: LadderQuote[] };
         const quotes = Array.isArray(body.quotes) ? body.quotes : [];
         if (alive) setLadder({ state: quotes.length > 0 ? "ok" : "unavailable", quotes });

@@ -213,8 +213,8 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   border: 1px solid var(--hair);
   background: transparent;
@@ -235,7 +235,7 @@ p {
 
 .menu-btn {
   appearance: none;
-  height: 36px;
+  height: 44px;
   padding: 0 12px;
   border-radius: 8px;
   border: 1px solid var(--hair);
@@ -254,7 +254,7 @@ p {
 .menu-list {
   position: absolute;
   right: 0;
-  top: 44px;
+  top: 52px;
   min-width: 180px;
   padding: 4px;
   margin: 0;
@@ -1379,7 +1379,49 @@ button.btn:disabled:hover {
 
 .footer-links {
   display: flex;
-  gap: 20px;
+  gap: 8px 20px;
+  flex-wrap: wrap;
+}
+
+/* 44px tap targets for footer links without changing how they look. */
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.notice-actions {
+  margin-top: 8px;
+}
+
+.reading-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.not-found {
+  padding: 96px 0 120px;
+  max-width: 40ch;
+}
+
+.not-found h1 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.not-found p {
+  margin-top: 12px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.not-found .hero-actions {
+  margin-top: 24px;
 }
 
 /* Narrow desktop */
@@ -1501,4 +1543,29 @@ button.btn:disabled:hover {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* 44px tap targets: extra padding with matching negative margin, so nothing moves. */
+.brand {
+  padding-block: 12px;
+  margin-block: -12px;
+}
+
+.nav-links a {
+  padding-block: 13px;
+  margin-block: -7px;
+}
+
+.hero-actions .text-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: -12px;
+  margin-bottom: 12px;
 }

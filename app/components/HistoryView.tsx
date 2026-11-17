@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { HistoryChart } from "@/components/HistoryChart";
+import { fetchWithTimeout, friendlyNetError } from "@/lib/net";
 import {
   HISTORY_WINDOW_SECS,
   RELAYER_URL,
@@ -17,6 +18,8 @@ import {
 } from "@/lib/history";
 
 type LoadState = "loading" | "ok" | "error";
+
+class HttpError extends Error {}
 
 const POLL_MS = 30_000;
 
@@ -34,11 +37,10 @@ export function HistoryView() {
       const since = now - HISTORY_WINDOW_SECS;
       try {
         const [histRes, actRes] = await Promise.all([
-          fetch(historyUrl("SOL", since)),
-          fetch(actionsUrl(since)),
+          fetchWithTimeout(historyUrl("SOL", since)),
+          fetchWithTimeout(actionsUrl(since)),
         ]);
-        if (!histRes.ok) throw new Error(`history HTTP ${histRes.status}`);
-        if (!actRes.ok) throw new Error(`actions HTTP ${actRes.status}`);
+        if (!histRes.ok || !actRes.ok) throw new HttpError();
         const [histBody, actBody] = await Promise.all([histRes.json(), actRes.json()]);
         const rows = parseHistory(histBody);
         const acts = parseActions(actBody);
@@ -50,7 +52,7 @@ export function HistoryView() {
         setStatus("ok");
       } catch (e) {
         if (!alive) return;
-        setError(e instanceof Error ? e.message : String(e));
+        setError(e instanceof HttpError ? "The history service sent back an error." : friendlyNetError(e, "the history service"));
         setStatus((prev) => (prev === "ok" ? "ok" : "error"));
       }
     };
@@ -76,7 +78,9 @@ export function HistoryView() {
         {status === "loading" && !formatted.length ? (
           <p className="muted">Reading Streams.</p>
         ) : status === "error" && !formatted.length ? (
-          <p className="muted">Could not reach the history API{error ? ` (${error})` : ""}.</p>
+          <p className="muted">
+            Could not load borrows. {error ?? ""} This page tries again every 30 seconds.
+          </p>
         ) : formatted.length === 0 ? (
           <p className="muted">
             No borrows have been recorded yet. Blocked and allowed borrows will appear here once someone uses the
