@@ -7,11 +7,11 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-brace = "3jpdhdCwBQW8fVTJpVSveZhDPmpb7u3AdUDd12Sg8fcU"
+brace = "Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC"
 
 [provider]
 cluster = "devnet"
-wallet = "/home/claude/keys/deployer.json"
+wallet = "/home/box/keys/deployer.json"
 
 [scripts]
 test = "cargo test"

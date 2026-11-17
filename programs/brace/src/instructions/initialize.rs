@@ -19,6 +19,7 @@ pub struct Initialize<'info> {
 
 pub fn handle_initialize(ctx: Context<Initialize>, params: Params, relayer: Pubkey) -> Result<()> {
     require!(params.is_valid(), BraceError::InvalidParams);
+    require!(relayer != Pubkey::default(), BraceError::InvalidParams);
     let config = &mut ctx.accounts.config;
     config.admin = ctx.accounts.admin.key();
     config.relayer = relayer;

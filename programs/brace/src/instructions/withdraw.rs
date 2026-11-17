@@ -28,8 +28,10 @@ pub struct Withdraw<'info> {
     pub pool: Account<'info, Pool>,
     #[account(seeds = [CONFIG_SEED], bump = config.bump)]
     pub config: Account<'info, Config>,
-    #[account(seeds = [FEED_SEED, SOL_SYMBOL.as_ref()], bump = sol_feed.bump)]
-    pub sol_feed: Account<'info, Feed>,
+    /// CHECK: validated as the initialized SOL Feed when debt > 0; ignored on
+    /// zero-debt exits, including when the account does not exist yet.
+    #[account(seeds = [FEED_SEED, SOL_SYMBOL.as_ref()], bump)]
+    pub sol_feed: UncheckedAccount<'info>,
 }
 
 pub fn handle_withdraw(ctx: Context<Withdraw>, lamports: u64) -> Result<()> {
@@ -37,9 +39,12 @@ pub fn handle_withdraw(ctx: Context<Withdraw>, lamports: u64) -> Result<()> {
     let pos = &ctx.accounts.position;
     require!(lamports <= pos.collateral_lamports, BraceError::InsufficientCollateral);
     let new_collateral = pos.collateral_lamports - lamports;
-    // Zero debt: the owner can always exit, even on a stale price.
+    // Zero debt: the owner can always exit, even on a stale price or missing feed.
     if pos.debt > 0 {
-        check_limit(pos.debt, new_collateral, &ctx.accounts.sol_feed, &ctx.accounts.config.params)?;
+        let feed_info = ctx.accounts.sol_feed.to_account_info();
+        require_keys_eq!(*feed_info.owner, crate::ID, ErrorCode::AccountOwnedByWrongProgram);
+        let feed = Feed::try_deserialize(&mut &feed_info.try_borrow_data()?[..])?;
+        check_limit(pos.debt, new_collateral, &feed, &ctx.accounts.config.params)?;
     }
 
     pay_from_pool(&ctx.accounts.pool.to_account_info(), &ctx.accounts.owner.to_account_info(), lamports)?;

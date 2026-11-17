@@ -176,6 +176,14 @@ fn t02_initialize_invalid_params_fails() {
 }
 
 #[test]
+fn t12_initialize_default_relayer_rejected() {
+    // Pass 5 F2: initialize must reject the default pubkey, matching set_relayer.
+    let (mut svm, admin, _) = new_svm();
+    assert_code(send(&mut svm, init_ix(&admin.pubkey(), DEFAULT_PARAMS, Pubkey::default()), &admin), E_INVALID_PARAMS);
+    assert!(svm.get_account(&config_pda()).map(|a| a.data.is_empty()).unwrap_or(true));
+}
+
+#[test]
 fn t03_relayer_posts_sol_ladder() {
     let mut env = setup();
     post(&mut env, NOW + 86_134, SPOT, ladder()).unwrap();

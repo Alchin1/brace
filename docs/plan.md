@@ -52,7 +52,7 @@ Phase: core | Size: S
 Steps: fund deployer, `anchor deploy`, initialize with relayer pubkey, post one real Gemini ladder from the shell.
 Gate: `solana program show <id>` succeeds and the SOL Feed account shows a confident post.
 Phone check: open the program and the post tx on explorer.solana.com (devnet), see the instruction and logs.
-Commit: `chore: devnet deploy` | **Gated: yes** (5 devnet SOL to `WgkL5t5pVnjEx3SjBPbeoEyhA7xYd9BAThzJnNRKmHU`, 1 to relayer `HvCLY9PeSR9eFk1w6wks32BR3CZ1XS1cmZHgvCN3XMmb`)
+Commit: `chore: devnet deploy` | **Gated: yes** (5 devnet SOL to deployer `FncbMMNBCFVv76GsPP8FJhkNGHkmAZfw7gnkkBj7SvdM`, 1 to relayer `BSzBknNiGxiYXtjsK7wcHgvYg88BMQx1j26dKbfYfmRo`)
 
 ## Day 2: Wed Nov 18 (data pipeline)
 

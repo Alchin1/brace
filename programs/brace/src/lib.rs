@@ -10,7 +10,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("3jpdhdCwBQW8fVTJpVSveZhDPmpb7u3AdUDd12Sg8fcU");
+declare_id!("Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC");
 
 #[program]
 pub mod brace {

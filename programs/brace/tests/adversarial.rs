@@ -656,3 +656,21 @@ fn a11_post_quotes_16_compute_units() {
     assert!(cu_create < 200_000, "create CU {cu_create}");
     assert!(cu_update < 200_000, "update CU {cu_update}");
 }
+
+#[test]
+fn a12_zero_debt_withdraw_without_feed() {
+    // Pass 5 F1: a zero-debt deposit made before any SOL post must be withdrawable.
+    let mut env = base_no_post();
+    assert!(env.svm.get_account(&feed_pda()).is_none(), "feed must not exist yet");
+    let a = env.admin.insecure_clone();
+    send(&mut env, &[init_pool_ix(&a.pubkey())], &[&a]).unwrap();
+    let owner = env.owner.insecure_clone();
+    env.owner_ata = open_and_deposit(&mut env, &owner, DEPOSIT);
+    assert_eq!(read_position(&env, &owner.pubkey()).debt, 0);
+    let before = lamports(&env, &owner.pubkey());
+    withdraw(&mut env, DEPOSIT).unwrap();
+    assert_eq!(read_position(&env, &owner.pubkey()).collateral_lamports, 0);
+    assert_eq!(lamports(&env, &owner.pubkey()), before + DEPOSIT);
+    assert!(env.svm.get_account(&feed_pda()).is_none(), "withdraw must not create the feed");
+    check_invariants(&env);
+}

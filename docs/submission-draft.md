@@ -8,7 +8,7 @@
 - Team: Oh-Jay (remote), Alchin Daryabari, third member (TBD after confirm: name)
 - Repo: https://github.com/ohjay-official/brace
 - Live app: TBD after build: Vercel URL
-- Program id (devnet): TBD after build
+- Program id (devnet): Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC
 - Video (2 to 3 min): TBD after build
 - Description: TBD after build, from README first screen
 - Built with: Solana, Anchor, Rust, TypeScript, Cloudflare Workers, D1, QuickNode Streams, Gemini Prediction Markets API, Next.js, Vercel
