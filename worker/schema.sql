@@ -34,3 +34,17 @@ CREATE TABLE IF NOT EXISTS actions (
 );
 
 CREATE INDEX IF NOT EXISTS actions_ts ON actions (ts);
+
+-- Relayer run state so /health survives isolate recycle.
+CREATE TABLE IF NOT EXISTS relayer_runs (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  last_run TEXT,
+  last_error TEXT
+);
+
+CREATE TABLE IF NOT EXISTS relayer_assets (
+  asset TEXT PRIMARY KEY,
+  last_sig TEXT,
+  last_at INTEGER,
+  last_error TEXT
+);

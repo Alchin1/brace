@@ -5,14 +5,16 @@ import { checkSinkSecret, readJsonBody, SINK_SECRET_HEADER, verifyQuickNodeSigna
 import { encodePostQuotes, toHex } from "./encode.ts";
 import { fetchEvents, fetchSpotE6 } from "./gemini.ts";
 import { actionsResponse, historyResponse, parseSince } from "./history.ts";
+import { parseRpcUrls, rpcAwareFetch, withRpcFallback } from "./rpc.ts";
 import { selectLadder } from "./select.ts";
-import { D1Store, type BraceStore } from "./store.ts";
+import { buildHealthReport, D1Store, type BraceStore, type RelayerAssetState, type RelayerRunState } from "./store.ts";
 import { ingestPayload } from "./streams.ts";
 import { buildPostQuotesTransaction } from "./tx.ts";
 
 export type Env = {
   PROGRAM_ID: string;
   RPC_URL?: string;
+  RPC_URLS?: string;
   RELAYER_SECRET?: string;
   STREAMS_SINK_SECRET?: string;
   QN_SECURITY_TOKEN?: string;
@@ -77,8 +79,8 @@ export async function runOnce(env: Env, nowSeconds: number, fetchFn: typeof fetc
   const events = await fetchEvents(fetchFn);
   const relayer = loadRelayer(env.RELAYER_SECRET);
   const programId = new PublicKey(env.PROGRAM_ID);
-  const connection = new Connection(env.RPC_URL || "https://api.devnet.solana.com", "confirmed");
-  const recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+  const urls = parseRpcUrls(env);
+  const rpcFetch = rpcAwareFetch(fetchFn);
 
   for (const asset of ASSETS) {
     try {
@@ -88,17 +90,25 @@ export async function runOnce(env: Env, nowSeconds: number, fetchFn: typeof fetc
         continue;
       }
       const spotE6 = await fetchSpotE6(asset, fetchFn);
-      const tx = buildPostQuotesTransaction({
-        programId,
-        relayer,
-        recentBlockhash,
-        symbol: asset.symbol,
-        expiryTs: ladder.expiryTs,
-        ticker: ladder.ticker,
-        spotE6,
-        quotes: ladder.quotes,
+      const { result: sig } = await withRpcFallback(urls, async (url) => {
+        const connection = new Connection(url, {
+          commitment: "confirmed",
+          fetch: rpcFetch,
+          disableRetryOnRateLimit: true,
+        });
+        const recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+        const tx = buildPostQuotesTransaction({
+          programId,
+          relayer,
+          recentBlockhash,
+          symbol: asset.symbol,
+          expiryTs: ladder.expiryTs,
+          ticker: ladder.ticker,
+          spotE6,
+          quotes: ladder.quotes,
+        });
+        return await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
       });
-      const sig = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
       results.push({ asset: asset.symbol, ticker: ladder.ticker, sig });
       // Log only signatures and tickers.
       console.log(`brace post ${asset.symbol} ${ladder.ticker} ${sig}`);
@@ -109,6 +119,54 @@ export async function runOnce(env: Env, nowSeconds: number, fetchFn: typeof fetc
     }
   }
   return results;
+}
+
+export async function persistRun(
+  store: BraceStore | null,
+  results: RunResult[],
+  nowSeconds: number,
+  runError: string | null,
+): Promise<void> {
+  const lastRun = new Date(nowSeconds * 1000).toISOString();
+  const assetErrors = results.filter((r) => r.error).map((r) => `${r.asset}: ${r.error}`);
+  const lastError = runError ?? (assetErrors.length ? assetErrors.join("; ") : null);
+  state.lastRun = lastRun;
+  for (const r of results) {
+    if (r.sig) state.lastSigs[r.asset] = r.sig;
+  }
+  if (!store) return;
+  const prev = await store.loadRelayerRun();
+  const byAsset = new Map(prev.assets.map((a) => [a.asset, a]));
+  for (const r of results) {
+    const prevA: RelayerAssetState = byAsset.get(r.asset) ?? {
+      asset: r.asset,
+      lastSig: null,
+      lastAt: null,
+      lastError: null,
+    };
+    if (r.sig) {
+      byAsset.set(r.asset, { asset: r.asset, lastSig: r.sig, lastAt: nowSeconds, lastError: null });
+    } else if (r.error) {
+      byAsset.set(r.asset, { ...prevA, lastError: r.error });
+    }
+  }
+  const next: RelayerRunState = { lastRun, lastError, assets: [...byAsset.values()] };
+  await store.saveRelayerRun(next);
+}
+
+export async function healthReport(store: BraceStore | null, nowSeconds: number) {
+  if (store) {
+    const run = await store.loadRelayerRun();
+    const latestPosts = await store.latestPostTsByAsset();
+    return buildHealthReport(run, latestPosts, nowSeconds);
+  }
+  return {
+    ok: true,
+    lastRun: state.lastRun,
+    lastError: null as string | null,
+    lastSigs: state.lastSigs,
+    feeds: {} as Record<string, never>,
+  };
 }
 
 function corsHeaders(): Record<string, string> {
@@ -136,7 +194,7 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders() });
     }
     if (url.pathname === "/health") {
-      return corsJson({ ok: true, lastRun: state.lastRun, lastSigs: state.lastSigs });
+      return corsJson(await healthReport(storeFromEnv(env), Math.floor(Date.now() / 1000)));
     }
     if (url.pathname === "/preview") {
       const symbol = url.searchParams.get("asset") || "SOL";
@@ -195,15 +253,19 @@ export default {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(
       (async () => {
+        const now = Math.floor(Date.now() / 1000);
+        const store = storeFromEnv(env);
         try {
-          const results = await runOnce(env, Math.floor(Date.now() / 1000));
-          state.lastRun = new Date().toISOString();
-          for (const r of results) {
-            if (r.sig) state.lastSigs[r.asset] = r.sig;
-          }
+          const results = await runOnce(env, now);
+          await persistRun(store, results, now, null);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           console.log(`brace cron error: ${message}`);
+          try {
+            await persistRun(store, [], now, message);
+          } catch {
+            console.log("brace cron error: failed to persist run state");
+          }
         }
       })(),
     );

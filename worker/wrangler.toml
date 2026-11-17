@@ -10,7 +10,10 @@ account_id = "f5541f7a5c900e912b145e07fbc95d63"
 [vars]
 PROGRAM_ID = "Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC"
 RPC_URL = "https://solana-devnet.api.onfinality.io/public"
-# Official https://api.devnet.solana.com returns 403 (IP/provider blocked) from Cloudflare Worker IPs.
+# Comma-separated fallback list. OnFinality first; Tatum verified from a Cloudflare
+# Worker to accept getLatestBlockhash and sendTransaction on Solana devnet.
+# Official https://api.devnet.solana.com returns 403 from Cloudflare Worker IPs.
+RPC_URLS = "https://solana-devnet.api.onfinality.io/public,https://solana-devnet.gateway.tatum.io"
 
 # Minute cron is enabled (Task 7). Keep this on future deploys or the live posts stop.
 [triggers]

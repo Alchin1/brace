@@ -26,11 +26,11 @@ Account ID (not secret) is in `wrangler.toml`. There is no Cloudflare API token 
 
 Do not enable the minute cron until Task 7 (program on devnet and relayer funded). The exact later call is in `scripts/cf-deploy-relayer.mjs`.
 
-Optional later: set `RPC_URL` to a QuickNode (or other) devnet URL.
+RPC: `RPC_URL` plus optional comma-separated `RPC_URLS` (OnFinality first, then Tatum). The relayer retries 429s with backoff and fails over to the next URL. Official `api.devnet.solana.com` 403s Cloudflare IPs.
 
 ## Endpoints
 
-- `GET /health` → `{ ok, lastRun, lastSigs }` (in-memory; resets if the isolate is recycled).
+- `GET /health` → `{ ok, lastRun, lastError, lastSigs, feeds }` persisted in D1 (survives isolate recycle). `feeds[asset].ageSecs` is age of the last Stream-ingested post (or last relayer signature if none).
 - `GET /preview?asset=SOL` → selected ladder and encoded `post_quotes` bytes, no signing. Useful from a phone.
 - `POST /streams` → QuickNode Streams webhook sink. Requires header `x-brace-secret` matching `STREAMS_SINK_SECRET`. If `QN_SECURITY_TOKEN` is set, also verifies `X-QN-Nonce` + `X-QN-Timestamp` + body against `X-QN-Signature` (HMAC-SHA256, decompressed JSON).
 - `GET /history?asset=SOL&since=<unix>` → accuracy-tracker contract from docs/spec.md (JSON array, oldest first). CORS `*`.
