@@ -5,14 +5,17 @@
 - Main track: DeFi & Onchain Apps
 - Chain award: Best use of Solana
 - Bounties: Gemini Prediction Markets; QuickNode Streams
-- Team: Oh-Jay (remote), Alchin Daryabari, third member (TBD after confirm: name)
+- Team: Oh-Jay (remote), Alchin Daryabari, BL (confirm BL's full name and Devpost account before submitting)
 - Repo: https://github.com/ohjay-official/brace
-- Live app: TBD after build: Vercel URL
+- Live app: https://brace-ivory.vercel.app (board, no wallet); borrow demo https://brace-ivory.vercel.app/borrow; history https://brace-ivory.vercel.app/history
 - Program id (devnet): Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC
 - Program explorer: https://explorer.solana.com/address/Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC?cluster=devnet
 - Deploy transaction: https://explorer.solana.com/tx/3LSQqWgxJRpRxhFeF2v7Y2vmLxyvvX32uS6uVUXdzYdEuu4nDK3xcohKRdLHccUto3kYmhoxNmNW9azEp1VmS5DX?cluster=devnet
 - Relayer: https://brace-relayer.ohjaye0.workers.dev/health
-- Video (2 to 3 min): TBD after build
-- Description: TBD after build, from README first screen
+- QuickNode Streams history: https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL and https://brace-relayer.ohjaye0.workers.dev/actions
+- Rejected over-limit borrow (RiskTightened 6005): https://explorer.solana.com/tx/59uvMm48LV248sXSnvTV9wb8ZpVZmB8Q3ffiAsq3NU97wjU3wuSGD4EBSihWYpm1qZhrQNATA5rz5v1GWH6RVHnP?cluster=devnet
+- Accepted borrow: https://explorer.solana.com/tx/42EzMtDmmcengifcyTXjLY2BT3K1s8XCdVMEG3usorpbGiYEL5KgFHyBpWm9PyVi3Tymjg34PKqqmeCSQeJgehSf?cluster=devnet
+- Video (2 to 3 min, YouTube unlisted): needs Oh-Jay (B7). Paste the link here and in README line 19.
+- Description (from the README first screen): Lending markets set loan-to-value limits by governance vote and rarely change them, so limits are still the calm-week numbers when volatility arrives. Brace reads Gemini's live "price X or above" prediction market ladders, computes implied volatility onchain on Solana, and tightens borrowing limits before the move. Limits never go above the 75% governance cap, stale data only ever lowers them, and odds never liquidate anyone. A Cloudflare relayer posts raw Gemini quotes to the Brace program on Solana devnet every minute for SOL, BTC, ETH, XRP and ZEC; the program does the fit with integer math, so the relayer cannot fake a volatility number. QuickNode Streams records every Brace transaction, including rejected borrows, and powers the History page.
 - Built with: Solana, Anchor, Rust, TypeScript, Cloudflare Workers, D1, QuickNode Streams, Gemini Prediction Markets API, Next.js, Vercel
-- AI disclosure: built with AI coding assistance (Claude); all code reviewed and tested; third-party libraries listed in the README
+- AI disclosure: built with AI coding assistants (Claude and Grok), directed by Oh-Jay; every change passed its tests before merge; third-party libraries and versions are listed in the README

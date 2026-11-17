@@ -15,7 +15,7 @@ Lending markets set loan-to-value limits by governance vote and rarely change th
 | [Live board](https://brace-ivory.vercel.app) | About a minute. No wallet. |
 | [Borrow demo](https://brace-ivory.vercel.app/borrow) | A few minutes. Phantom with Testnet Mode on Solana Devnet. |
 | [History page](https://brace-ivory.vercel.app/history) and [live `/history` feed](https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL) | Instant. No wallet. |
-| One-command check | A few minutes (the fuzz test is about a minute). `anchor build && cargo test -p brace`, then `cd app && npx vitest run`. Rust 1.89 and Anchor 1.2.2 for the program. |
+| One-command check | A few minutes (the fuzz test is about a minute). `scripts/verify.sh` builds the program, runs every test suite and the app build, then checks the live relayer. Rust 1.89, Solana CLI (`cargo build-sbf`) and Node 20+. |
 | Film of the demo | Placeholder: the film link will be added here once it is recorded (B7). |
 | [Tracks](#tracks) | DeFi & Onchain Apps, Best use of Solana, Gemini Prediction Markets, QuickNode Streams. |
 
@@ -35,12 +35,21 @@ Lending markets set loan-to-value limits by governance vote and rarely change th
 Check the code in these commands (Rust 1.89 and Anchor CLI 1.2.2 for the program):
 
 ```bash
-anchor build && cargo test -p brace
-cd app && npx vitest run
-cd worker && npx vitest run
+scripts/verify.sh            # everything below, then the live checks
+scripts/verify.sh --live     # only: app returns 200, relayer healthy, all five feeds posted in the last 2 minutes
 ```
 
-Expected, from a fresh run on Nov 17, 2026 (Africa/Lagos): 52 Rust tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions in 48.43s, 12 oracle, 9 pool, 3 relayer-encoding); 60 app tests; 55 worker tests.
+Or step by step:
+
+```bash
+cargo build-sbf --manifest-path programs/brace/Cargo.toml && cargo test -p brace
+(cd worker && npm ci && npx vitest run)
+(cd app && npm ci && npx vitest run && npm run build)
+```
+
+Use `cargo build-sbf`, not `anchor build`, in a fresh clone: `anchor build` creates a new program keypair and rewrites `declare_id`, and then the program id test fails on purpose.
+
+Expected, from a fresh run on Nov 17, 2026 (Africa/Lagos): 52 Rust tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions in 52.07s, 12 oracle, 9 pool, 3 relayer-encoding); 63 app tests; 76 worker tests.
 
 ## Proof It's Real
 
@@ -98,16 +107,16 @@ Sources were fetched on Nov 17, 2026. Each competitor cell is as that vendor's c
 | DeFi & Onchain Apps | A lending risk primitive plus a working pool that enforces it | [`instructions/borrow.rs`](programs/brace/src/instructions/borrow.rs), Try It steps 3 and 4 |
 | Best use of Solana | Volatility math onchain in an Anchor program on devnet; a verified SOL `post_quotes` used 40,674 compute units | [`src/math.rs`](programs/brace/src/math.rs), [`instructions/post_quotes.rs`](programs/brace/src/instructions/post_quotes.rs), [the packed post](https://explorer.solana.com/tx/5cwQA5BzCHPZPJTDbs6bRiPX649mQr8v4vj8C2kXusPayhZk6pL5mmMC9nJtuKHqzw5ad2mhjHiFrgwNjRajcgNB?cluster=devnet) |
 | Gemini Prediction Markets | Gemini's live ladders are the only input to the oracle | [`worker/src/`](worker/src), [How Gemini is used](#how-the-sponsor-tech-is-used) |
-| QuickNode Streams | Stream `brace-program` on Solana devnet, filtered to the program id, delivers every successful and failed Brace transaction to the Worker `/streams` webhook. That feed powers `/history`, `/actions`, the History page, and the accuracy tracker. | [`worker/filters/brace-program.js`](worker/filters/brace-program.js), [live `/history`](https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL) |
+| QuickNode Streams | Stream `brace-program` on Solana devnet, filtered to the program id, delivers every successful and failed Brace transaction to the Worker `/streams` webhook. That feed powers `/history`, `/actions` and the History page, and is the input for Alchin's accuracy tracker (in progress). | [`worker/filters/brace-program.js`](worker/filters/brace-program.js), [live `/history`](https://brace-relayer.ohjaye0.workers.dev/history?asset=SOL) |
 
 ## What Works Today
 
 | Piece | State |
 |---|---|
 | Brace program (oracle, limits, pool, liquidation) | Live on Solana devnet at the address above. 52/52 Rust tests passed on Nov 17, 2026. |
-| Relayer Worker (Cloudflare, every minute) | Live at [brace-relayer.ohjaye0.workers.dev](https://brace-relayer.ohjaye0.workers.dev/health). 55/55 worker tests passed on Nov 17, 2026. |
-| Streams sink and `/history` API | Live. `/history?asset=SOL` is oldest-first. `/actions` has recorded the verified deposit, blocked borrow and accepted borrow. |
-| Web app (risk board, borrow flow, history) | Live at [brace-ivory.vercel.app](https://brace-ivory.vercel.app). 60/60 app tests passed on Nov 17, 2026. |
+| Relayer Worker (Cloudflare, every minute) | Live at [brace-relayer.ohjaye0.workers.dev](https://brace-relayer.ohjaye0.workers.dev/health). 76/76 worker tests passed on Nov 17, 2026. |
+| Streams sink and `/history` API | Live. `/history?asset=SOL` is oldest-first. `/actions` has recorded the verified deposit, blocked borrow and accepted borrow. Bad input gets a 400 with a plain error; responses are capped at 10,000 rows (page forward with `since`). |
+| Web app (risk board, borrow flow, history) | Live at [brace-ivory.vercel.app](https://brace-ivory.vercel.app). 63/63 app tests passed on Nov 17, 2026. |
 | Accuracy tracker (Python) | In progress by Alchin. No measured hit rate in this README yet. |
 
 ## How the Sponsor Tech Is Used
@@ -184,7 +193,7 @@ Reviewed in five separate passes (correctness, access control, financial logic, 
 - First commit: `a71e7ef`, 2026-11-15 23:14 Lagos (16:14 CST). No earlier code, template or boilerplate beyond `anchor init`. Check: `git log --reverse --format='%h %ad %s' --date=iso | head -3`.
 - Code, tests and docs were written with AI coding assistants (Claude and Grok), directed by Oh-Jay, who made the product decisions and handles every wallet and account step. Every change passed its tests before merge.
 - Runtime: Anchor 1.2.2 (`anchor-lang`, `anchor-spl` with SPL Token), `@solana/web3.js` 1.99.0, Next.js 15.5.29, React 19.3.1.
-- Development: LiteSVM 0.15.0, Vitest 5.1.0 (app) and 3.2.7 (worker), TypeScript 5.9.3, Wrangler 4.163.0.
+- Development: LiteSVM 0.15.0, Vitest 5.1.0 (app and worker), TypeScript 5.9.3, Wrangler 4.163.0.
 - Services: Gemini Prediction Markets public API, Solana devnet, Cloudflare Workers, QuickNode Streams, Vercel.
 - Team: Oh-Jay (build), Alchin Daryabari and BL (pitch, accuracy tracker).
 
