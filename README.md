@@ -182,6 +182,7 @@ Reviewed in five separate passes (correctness, access control, financial logic, 
 | `worker/` | Cloudflare relayer Worker (TypeScript), Streams sink, and tests |
 | `app/` | Next.js risk board, borrow flow, and history page |
 | `scripts/devnet-setup.mjs` | Deploy-time setup: initialize, pool, admin check |
+| `scripts/verify.sh` | One-command check: build, every test suite, app build, live relayer health |
 | `docs/` | Spec, plan, reviews, research, event rules, progress log |
 
 </details>
