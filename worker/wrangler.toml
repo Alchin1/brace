@@ -1,0 +1,16 @@
+# Brace Gemini relayer. Do not put secrets or keypairs in this file.
+# Deploy (later, needs Oh-Jay's Cloudflare token + Account ID):
+#   wrangler secret put RELAYER_SECRET
+#   CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npx wrangler deploy
+name = "brace-relayer"
+main = "src/index.ts"
+compatibility_date = "2026-11-17"
+# Placeholder: replace with the Cloudflare Account ID before deploy.
+account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+[vars]
+PROGRAM_ID = "Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC"
+RPC_URL = "https://api.devnet.solana.com"
+
+[triggers]
+crons = ["* * * * *"]

@@ -11,14 +11,14 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | 5 | Invariants | done | 3,000 random actions, 7 invariants held | 680ad99 |
 | 6 | Reviews | passes 1-5 done; F1 and F2 fixed; program id switched to Frv6CVJK… | 49/49 tests (15 math, 12 adversarial, 1 fuzz, 12 oracle, 9 pool); F1/F2 marked in docs/reviews.md | (this commit) |
 | 7 | Devnet deploy | pending (needs devnet SOL) | | |
-| 8 | Relayer Worker | in progress (Grok) | | |
+| 8 | Relayer Worker | done (Grok); not deployed (no Cloudflare token) | worker vitest 18/18, tsc --noEmit exit 0; cargo test -p brace 52/52 (15 math, 12 adversarial, 1 fuzz, 12 oracle, 9 pool, 3 worker_ix incl. LiteSVM accept of worker-encoded post_quotes) | (this commit) |
 | 9 | Streams + history | pending (needs QuickNode key) | | |
 | 10 | README | pending | | |
 | 11 | Risk board | pending (needs Vercel token) | | |
 | 12 | Borrow flow | pending | | |
 | 13 | Re-check | pending | | |
 
-Next up: Grok building Task 8 relayer Worker; Task 7 still needs funded keys.
+Next up: Task 7 still needs funded keys (deployer and relayer are 0 SOL; program not on devnet). Tasks 10–12 are free for Claude. Task 9 needs a QuickNode key.
 
 ## Session log
 
@@ -31,3 +31,6 @@ Next up: Grok building Task 8 relayer Worker; Task 7 still needs funded keys.
 - Nov 17, 04:08 Lagos: Grok fixed Pass 5 F1 (zero-debt withdraw without a SOL Feed) and F2 (initialize rejects the default relayer), switched the program id to Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC, and re-ran the gate: 49/49 tests pass.
 
 - Nov 17, 04:08 Lagos: Devnet setup script written at scripts/devnet-setup.mjs (dry-run by default; not executed). Deployer and relayer balances on devnet are both 0 SOL; program is not deployed.
+
+- Nov 17, 04:18 Lagos: Grok built the Cloudflare relayer Worker under worker/ (cron every minute, /health, /preview). Ladder selection and quote parsing unit-tested against live Gemini fixtures captured 2026-11-17 03:12 UTC. Worker-encoded post_quotes bytes match the program IDL and were accepted by LiteSVM with the local brace.so. wrangler.toml uses a placeholder account_id. Not deployed.
+
