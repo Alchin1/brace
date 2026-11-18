@@ -1,7 +1,7 @@
 # Brace Gemini relayer. Do not put secrets or keypairs in this file.
 # Account ID is not secret. RELAYER_SECRET is set via the Workers secrets API, never committed.
-# Deploy through the Cloudflare Workers scripts API (see scripts/cf-deploy-relayer.mjs).
-# There is no Cloudflare API token in this environment; do not wrangler deploy unless a token is added later.
+# Deploy with `npx wrangler deploy` using CLOUDFLARE_API_TOKEN from the environment (never stored in the repo).
+# wrangler deploy keeps existing secrets, the D1 binding below and the minute cron.
 name = "brace-relayer"
 main = "src/index.ts"
 compatibility_date = "2026-11-17"

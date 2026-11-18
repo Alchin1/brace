@@ -1,3 +1,4 @@
+import { ASSETS } from "./assets.ts";
 import type { PendingSig } from "./confirm.ts";
 export type PostRow = {
   tx: string;
@@ -62,7 +63,8 @@ export interface BraceStore {
   /** Oldest first. With since: the first `limit` rows from since. Without: the newest `limit` rows. */
   listPosts(asset: string | undefined, since: number | undefined, limit?: number): Promise<PostRow[]>;
   listActions(since: number | undefined, limit?: number): Promise<ActionRow[]>;
-  saveRelayerRun(state: RelayerRunState): Promise<void>;
+  /** prev is the state loaded before this run; a store may skip rows that did not change. */
+  saveRelayerRun(state: RelayerRunState, prev?: RelayerRunState): Promise<void>;
   loadRelayerRun(): Promise<RelayerRunState>;
   latestPostTsByAsset(): Promise<Record<string, number>>;
   listPendingSigs(): Promise<PendingSig[]>;
@@ -253,19 +255,24 @@ export class D1Store implements BraceStore {
     }));
   }
 
-  async saveRelayerRun(state: RelayerRunState): Promise<void> {
-    await this.db
-      .prepare(`INSERT OR REPLACE INTO relayer_runs (id, last_run, last_error) VALUES (1, ?, ?)`)
-      .bind(state.lastRun, state.lastError)
-      .run();
+  async saveRelayerRun(state: RelayerRunState, prev?: RelayerRunState): Promise<void> {
+    // One round trip, and asset rows that did not change are not rewritten (D1 bills rows written).
+    const before = new Map((prev?.assets ?? []).map((a) => [a.asset, a]));
+    const stmts = [
+      this.db
+        .prepare(`INSERT OR REPLACE INTO relayer_runs (id, last_run, last_error) VALUES (1, ?, ?)`)
+        .bind(state.lastRun, state.lastError),
+    ];
     for (const a of state.assets) {
-      await this.db
-        .prepare(
-          `INSERT OR REPLACE INTO relayer_assets (asset, last_sig, last_at, last_error) VALUES (?, ?, ?, ?)`,
-        )
-        .bind(a.asset, a.lastSig, a.lastAt, a.lastError)
-        .run();
+      const b = before.get(a.asset);
+      if (b && b.lastSig === a.lastSig && b.lastAt === a.lastAt && b.lastError === a.lastError) continue;
+      stmts.push(
+        this.db
+          .prepare(`INSERT OR REPLACE INTO relayer_assets (asset, last_sig, last_at, last_error) VALUES (?, ?, ?, ?)`)
+          .bind(a.asset, a.lastSig, a.lastAt, a.lastError),
+      );
     }
+    await this.db.batch(stmts);
   }
 
   async loadRelayerRun(): Promise<RelayerRunState> {
@@ -290,12 +297,16 @@ export class D1Store implements BraceStore {
   }
 
   async latestPostTsByAsset(): Promise<Record<string, number>> {
-    const res = await this.db.prepare(`SELECT asset, MAX(ts) AS last_ts FROM posts GROUP BY asset`).all<{
-      asset: string;
-      last_ts: number;
-    }>();
+    // One MAX(ts) index seek per known asset (about 5 rows read). The old GROUP BY scanned every post.
+    const values = ASSETS.map(() => "(?)").join(", ");
+    const res = await this.db
+      .prepare(
+        `WITH a(asset) AS (VALUES ${values}) SELECT asset, (SELECT MAX(ts) FROM posts WHERE posts.asset = a.asset) AS last_ts FROM a`,
+      )
+      .bind(...ASSETS.map((x) => x.symbol))
+      .all<{ asset: string; last_ts: number | null }>();
     const out: Record<string, number> = {};
-    for (const row of res.results ?? []) out[row.asset] = row.last_ts;
+    for (const row of res.results ?? []) if (row.last_ts != null) out[row.asset] = row.last_ts;
     return out;
   }
 
