@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useRef } from "react";
 import { chartDomain, curvePoints, fmtPrice, niceTicks, pct1, probAbove } from "@/lib/chart";
 import type { Symbol } from "@/lib/brace";
 import { StatusCell } from "../Instruments";
@@ -30,6 +31,38 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
   const bottom = phone ? 32 : 40;
   const ph = H - top - bottom;
 
+  // The probe: what the onchain fit says about any strike under the pointer.
+  // Scales live in a ref so pointer moves never re-render; only transforms and one text node change.
+  const scale = useRef<{ min: number; max: number; median: number; sT: number } | null>(null);
+  const probeRef = useRef<HTMLDivElement>(null);
+  const dotRef = useRef<SVGGElement>(null);
+  const readRef = useRef<HTMLSpanElement>(null);
+  const frame = useRef(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const clip = `st${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const probe = (clientX: number, clientY: number, paper: HTMLElement) => {
+    const sc = scale.current;
+    const box = paper.getBoundingClientRect();
+    if (!sc || !probeRef.current || !dotRef.current || !readRef.current) return;
+    if (clientY < box.top || clientY > box.bottom) return hideProbe();
+    const x = Math.max(0, Math.min(box.width, clientX - box.left));
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
+      const k = sc.min + (x / box.width) * (sc.max - sc.min);
+      const p = probAbove(k, sc.median, sc.sT);
+      const y = top + (1 - p) * ph;
+      probeRef.current!.style.transform = `translate3d(${x}px,0,0)`;
+      probeRef.current!.classList.toggle("is-left", x > box.width - 220);
+      dotRef.current!.style.transform = `translate3d(${x}px,${y}px,0)`;
+      readRef.current!.textContent = `${fmtPrice(k)}, ${(p * 100).toFixed(1)}% chance above`;
+      sectionRef.current?.classList.add("is-probing");
+    });
+  };
+  const hideProbe = () => {
+    cancelAnimationFrame(frame.current);
+    sectionRef.current?.classList.remove("is-probing");
+  };
+
   let under: React.ReactNode = null;
   let over: React.ReactNode = null;
   let note: string | null = null;
@@ -48,6 +81,7 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
         : null;
     const penP = m.sT > 0 ? probAbove(m.spot, m.median, m.sT) : null;
     const sx = xs(m.spot);
+    scale.current = m.median > 0 && m.sT > 0 ? { min: dom.min, max: dom.max, median: m.median, sT: m.sT } : null;
     under = (
       <>
         {(phone ? [0, 1] : [0, 0.5, 1]).map((p) => (
@@ -81,18 +115,26 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
     );
     over = (
       <>
-        {curve && <path d={curve} pathLength={1} className="st-knock" />}
-        {curve && <path d={curve} pathLength={1} className="st-curve" />}
-        {quotes.map((q) => {
+        <clipPath id={clip}>
+          <rect className="st-reveal" x={0} y={0} width={W} height={H} />
+        </clipPath>
+        <g clipPath={`url(#${clip})`}>
+          {curve && <path d={curve} pathLength={1} className="st-knock" />}
+          {curve && <path d={curve} pathLength={1} className="st-curve" />}
+        </g>
+        {quotes.map((q, i) => {
           const x = xs(q.strike);
           return (
-            <g key={q.strike} className="st-rung">
+            <g key={q.strike} className="st-rung" style={{ "--i": i } as React.CSSProperties}>
               <line x1={x} x2={x} y1={ys(q.bid)} y2={ys(q.ask)} />
               <line x1={x - 4} x2={x + 4} y1={ys(q.bid)} y2={ys(q.bid)} />
               <line x1={x - 4} x2={x + 4} y1={ys(q.ask)} y2={ys(q.ask)} />
             </g>
           );
         })}
+        <g ref={dotRef} className="st-probe-dot">
+          <circle cx={0} cy={0} r={phone ? 5 : 6} />
+        </g>
         {penP !== null && (
           <g className="st-pen">
             <circle cx={sx} cy={ys(penP)} r={phone ? 4 : 5} />
@@ -116,7 +158,22 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
 
   const stale = m.status === "stale";
   return (
-    <section className={`stage${stale ? " is-stale" : ""}${m.limit === null ? " is-empty" : ""}`} aria-labelledby={id}>
+    <section
+      className={`stage${stale ? " is-stale" : ""}${m.limit === null ? " is-empty" : ""}`}
+      aria-labelledby={id}
+      ref={sectionRef}
+      onPointerMove={(e) => {
+        const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
+        if (e.pointerType === "mouse" && paper) probe(e.clientX, e.clientY, paper);
+      }}
+      onPointerDown={(e) => {
+        const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
+        if (e.pointerType !== "mouse" && paper) probe(e.clientX, e.clientY, paper);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") hideProbe();
+      }}
+    >
       {children && (
         <div className="wrap stage-copy-w">
           <div className="stage-copy">{children}</div>
@@ -129,6 +186,10 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
         <svg className="st-over" width={W} height={H} viewBox={`0 0 ${W} ${H}`} focusable="false">
           {over}
         </svg>
+        <div ref={probeRef} className="st-probe" style={{ top, height: ph }}>
+          <span ref={readRef} className="st-probe-read" />
+        </div>
+        {scale.current && <span className="st-hint">{phone ? "Tap the paper to read any strike" : "Move across the paper to read any strike"}</span>}
       </div>
       <div className="wrap stage-fig-w">
         <div className="stage-figure">
@@ -137,7 +198,13 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
             <StatusCell status={m.down ? null : m.status} />
           </p>
           <p className="numeral" aria-label={m.limit === null ? `${symbol} limit not read yet` : `${symbol} limit ${pct1(m.limit)}`}>
-            <span className="n-v">{m.limit === null ? "--.-" : figure(m.limit)}</span>
+            <span className="n-v" aria-hidden>
+              {(m.limit === null ? "--.-" : figure(m.limit)).split("").map((c, i) => (
+                <span key={`${i}${c}`} className="n-c" style={{ "--i": i } as React.CSSProperties}>
+                  {c}
+                </span>
+              ))}
+            </span>
             <span className="n-p">%</span>
           </p>
           <BraceGauge limitBps={m.limit} capBps={m.cap} liqBps={m.liq} tone={stale ? "stale" : undefined} />

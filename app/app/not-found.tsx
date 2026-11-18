@@ -12,8 +12,8 @@ export default function NotFound() {
   return (
     <section className="nf wrap" aria-labelledby="nf-h">
       <ol className="nf-ladder" aria-hidden>
-        {RUNGS.map((r) => (
-          <li key={r} className={r === "404" ? "is-gone" : undefined}>
+        {RUNGS.map((r, i) => (
+          <li key={r} className={r === "404" ? "is-gone" : undefined} style={{ "--i": i } as React.CSSProperties}>
             <span>{r === "404" ? "404" : ""}</span>
             <i />
           </li>

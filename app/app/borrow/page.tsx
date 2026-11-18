@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { WalletShell } from "@/components/borrow/WalletShell";
-import { PageHead } from "@/components/ui/PageHead";
+import { LineHead } from "@/components/v2/LineHead";
 
 export const metadata: Metadata = { title: "Try a borrow" };
 
 export default function BorrowPage() {
   return (
     <div className="page wrap borrow-page">
-      <PageHead kicker="Borrow on devnet" title="Try a borrow" />
+      <LineHead />
       <WalletShell />
     </div>
   );

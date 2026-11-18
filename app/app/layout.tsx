@@ -37,13 +37,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f3f0e8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f1012" },
+    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
+    { media: "(prefers-color-scheme: dark)", color: "#141415" },
   ],
 };
 
 // Applies the saved theme before first paint so there is no flash.
-const themeScript = `try{var t=localStorage.getItem("brace-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+const themeScript = `try{var t=localStorage.getItem("brace-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}try{var d=document.documentElement;if(!matchMedia("(prefers-reduced-motion: reduce)").matches){d.classList.add("motion");setTimeout(function(){if(!window.__scenes)d.classList.remove("motion")},4000)}}catch(e){}`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

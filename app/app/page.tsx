@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowDown, ArrowRight } from "lucide-react";
+import { Closer } from "@/components/v2/Closer";
 import { LadderRungs, Worksheet } from "@/components/v2/Ladder";
 import { ProofLog } from "@/components/v2/ProofLog";
 import { Recorder } from "@/components/v2/Recorder";
@@ -28,7 +29,7 @@ export default function Home() {
         </div>
       </Stage>
 
-      <section className="band" aria-labelledby="rec-title" id="board">
+      <section className="band" aria-labelledby="rec-title" id="board" data-scene>
         <div className="wrap">
           <header className="shead">
             <p className="shead-k">Recorder, 5 channels</p>
@@ -42,7 +43,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="band ink" aria-labelledby="ladder-title" id="ladder">
+      <section className="band ink" aria-labelledby="ladder-title" id="ladder" data-scene>
         <div className="wrap">
           <header className="shead">
             <p className="shead-k">SOL, right now</p>
@@ -59,11 +60,13 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="band" aria-labelledby="rules-title">
+      <section className="band rules-band" aria-labelledby="rules-title" data-scene>
         <div className="wrap">
           <header className="shead">
             <p className="shead-k">Three rules in the program</p>
-            <h2 id="rules-title">It only ever tightens on its own</h2>
+            <h2 id="rules-title" className="converge">
+              <span className="cv-a">It only ever</span> <span className="cv-b">tightens on its own</span>
+            </h2>
           </header>
           <ol className="rules">
             <li>
@@ -86,7 +89,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="band" aria-labelledby="proof-title">
+      <section className="band" aria-labelledby="proof-title" data-scene>
         <div className="wrap">
           <header className="shead">
             <p className="shead-k">Proof</p>
@@ -96,22 +99,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="closer" aria-labelledby="close-title">
-        <div className="wrap closer-grid">
-          <div className="closer-in">
-            <h2 id="close-title">Now try to borrow past the line</h2>
-            <p>Borrow over the live limit and the program refuses it onchain with error 6005, RiskTightened. It costs devnet SOL only.</p>
-            <Link href="/borrow" className="btn btn-primary btn-lg">
-              Try a borrow <ArrowRight size={18} aria-hidden />
-            </Link>
-          </div>
-          <div className="stamp" aria-hidden>
-            <span className="stamp-k">Blocked by the program</span>
-            <span className="stamp-code">6005</span>
-            <span className="stamp-k">RiskTightened</span>
-          </div>
-        </div>
-      </section>
+      <Closer />
     </>
   );
 }

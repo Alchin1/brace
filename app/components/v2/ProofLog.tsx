@@ -16,7 +16,29 @@ export function ProofLog() {
   const { now } = useBoard();
   const t = now || Math.floor(Date.now() / 1000);
   const id = PROGRAM_ID.toBase58();
+  const tape = SYMBOLS.flatMap((s) => {
+    const f = health?.feeds[s];
+    return f?.lastSig ? [{ s, sig: f.lastSig, age: f.lastPostTs ? relTime(t - f.lastPostTs) : "" }] : [];
+  });
   return (
+    <>
+    {tape.length > 0 && (
+      <div className="pl-tape" aria-hidden>
+        <div className="pl-tape-track">
+          {[0, 1].map((k) => (
+            <span key={k} className="pl-tape-set">
+              {tape.map((x) => (
+                <span key={x.s} className="pl-tape-i">
+                  <b>{x.s}</b>
+                  <span>{x.sig}</span>
+                  <i>{x.age}</i>
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
     <div className="prooflog">
       <div className="pl-log" role="table" aria-label="Last relayer post per feed">
         <div className="pl-row pl-head" role="row">
@@ -68,5 +90,6 @@ export function ProofLog() {
         </a>
       </div>
     </div>
+    </>
   );
 }

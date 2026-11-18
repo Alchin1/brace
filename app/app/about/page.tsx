@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { PageHead } from "@/components/ui/PageHead";
 import { ProofLog } from "@/components/v2/ProofLog";
+import { AboutSpy } from "@/components/v2/AboutSpy";
 
 export const metadata: Metadata = { title: "About" };
 
@@ -23,10 +24,13 @@ function SignalChain() {
     { t: "Demo pool", s: "Checks every borrow against it" },
   ];
   return (
-    <figure className="chain">
+    <figure className="chain" data-scene>
+      <span className="chain-wire" aria-hidden>
+        <span className="chain-pkt" />
+      </span>
       <ol>
         {nodes.map((n, i) => (
-          <li key={n.t} className={n.key ? "is-key" : undefined}>
+          <li key={n.t} className={n.key ? "is-key" : undefined} style={{ "--i": i } as React.CSSProperties}>
             <span className="c-n">0{i + 1}</span>
             <strong>{n.t}</strong>
             <span>{n.s}</span>
@@ -48,6 +52,7 @@ export default function AboutPage() {
       />
 
       <div className="about-grid">
+        <AboutSpy ids={SECTIONS.map((s) => s.id)} />
         <nav className="about-index" aria-label="On this page">
           <ol>
             {SECTIONS.map((s) => (
@@ -63,7 +68,7 @@ export default function AboutPage() {
 
         <div className="about-body prose">
           <section id="problem" data-reveal>
-            <p className="ab-n">01 The problem</p>
+            <h2 className="ab-n"><span>01</span> The problem</h2>
             <p>
               Lending markets set loan to value limits by governance vote and change them rarely. When volatility jumps, the limits are
               still the calm-week numbers. Implied volatility feeds from options markets mostly cover majors, and collateral like ZEC has no
@@ -72,7 +77,7 @@ export default function AboutPage() {
           </section>
 
           <section id="signal" data-reveal>
-            <p className="ab-n">02 The signal</p>
+            <h2 className="ab-n"><span>02</span> The signal</h2>
             <p>
               Gemini lists regulated &quot;X or above&quot; price ladders for BTC, ETH, SOL, XRP, ZEC and more, from hourly to multiweek
               expiries. A ladder is a market-implied probability curve, and a probability curve gives you implied volatility.
@@ -80,7 +85,7 @@ export default function AboutPage() {
           </section>
 
           <section id="system" data-reveal>
-            <p className="ab-n">03 The system</p>
+            <h2 className="ab-n"><span>03</span> The system</h2>
             <SignalChain />
             <p>
               A relayer reads Gemini&apos;s live ladders every minute and posts the raw quotes (strike, bid, ask, expiry, event ticker) to
@@ -95,7 +100,7 @@ export default function AboutPage() {
           </section>
 
           <section id="limit" data-reveal>
-            <p className="ab-n">04 The limit</p>
+            <h2 className="ab-n"><span>04</span> The limit</h2>
             <p>
               Max LTV is the lower of the governance max and a volatility-adjusted limit. Stale or low confidence data never loosens
               anything: Brace keeps the last valid limit and steps it down toward a conservative floor until fresh data arrives. A demo
@@ -105,7 +110,7 @@ export default function AboutPage() {
           </section>
 
           <section id="limits" data-reveal>
-            <p className="ab-n">05 Known limitations</p>
+            <h2 className="ab-n"><span>05</span> Known limitations</h2>
             <ul className="limits-list">
               <li>
                 The relayer is trusted for quotes and spot. Mitigations: spot only moves on confident posts, must be within 3% of the

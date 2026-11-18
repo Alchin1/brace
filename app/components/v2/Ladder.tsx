@@ -59,7 +59,7 @@ export function LadderRungs({ symbol, max = 12 }: { symbol: Symbol; max?: number
           {rungs.map((r, i) => {
             const mid = r.bid !== null && r.ask !== null ? (r.bid + r.ask) / 2 : null;
             return (
-              <li key={r.strike} className={i === spotAt ? "is-spot" : undefined}>
+              <li key={r.strike} className={i === spotAt ? "is-spot" : undefined} style={{ "--i": i } as React.CSSProperties}>
                 {i === spotAt && m.spot !== null && (
                   <span className="rung-spot" aria-label={`spot ${fmtPrice(m.spot)}`}>
                     spot {fmtPrice(m.spot)}

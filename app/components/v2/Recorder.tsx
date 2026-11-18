@@ -49,6 +49,7 @@ function Trace({ pts, loading, since, until, lo, hi, cap, sym }: { pts: TracePoi
             <circle key={i} className="ch-solo" cx={x(s[0].ts)} cy={y(s[0].v)} r="1.5" />
           ) : null,
         )}
+        <rect className="ch-cover" x={0} y={0} width={w} height={h} />
         <circle className="ch-pen" cx={x(last.ts)} cy={y(last.v)} r="3.5" />
       </svg>
     </span>
@@ -73,12 +74,12 @@ export function Recorder() {
   return (
     <div className="recorder">
       <ul className="channels">
-        {SYMBOLS.map((s) => {
+        {SYMBOLS.map((s, i) => {
           const f = ok?.feeds[s] ?? null;
           const status = ok ? feedStatus(f, ok.config.params, now) : null;
           const limit = ok && f ? feedEffectiveLtvBps(f, ok.config.params, now) : null;
           return (
-            <li key={s}>
+            <li key={s} style={{ "--i": i } as React.CSSProperties}>
               <Link href={`/asset/${s}`} className="ch">
                 <span className="ch-id">
                   <strong>{s}</strong>

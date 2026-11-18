@@ -76,7 +76,7 @@ export function AssetDetail({ symbol }: { symbol: Symbol }) {
         </div>
       )}
 
-      <section className="band ink" aria-labelledby="a-ladder">
+      <section className="band ink" aria-labelledby="a-ladder" data-scene>
         <div className="wrap">
           <header className="shead">
             <p className="shead-k">{symbol} ladder</p>
@@ -89,7 +89,7 @@ export function AssetDetail({ symbol }: { symbol: Symbol }) {
         </div>
       </section>
 
-      <section className="band" aria-labelledby="a-facts">
+      <section className="band" aria-labelledby="a-facts" data-scene>
         <div className="wrap">
           <header className="shead">
             <p className="shead-k">Feed account</p>

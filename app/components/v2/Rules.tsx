@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { effectiveLimitBps } from "@/lib/brace";
 import { pct1 } from "@/lib/chart";
 import { MAX_PRICE_AGE_SECS } from "@/lib/position";
@@ -19,6 +20,7 @@ function dur(s: number): string {
 export function StepDown() {
   const m = useFeedModel("SOL");
   const [ref, w] = useWidth<HTMLDivElement>(480);
+  const clip = `sd${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const p = m.params;
   const f = m.feed;
   const h = 150;
@@ -54,7 +56,10 @@ export function StepDown() {
         <text x={pause + (pause > w - 130 ? -6 : 6)} y={18} className="sd-lbl" textAnchor={pause > w - 130 ? "end" : "start"}>
           borrowing pauses
         </text>
-        <path d={d} className="sd-line" />
+        <clipPath id={clip}>
+          <rect className="sd-reveal" x={0} y={0} width={w} height={h} />
+        </clipPath>
+        <path d={d} className="sd-line" clipPath={`url(#${clip})`} />
         <text x={8} y={y(top) - 8} className="sd-lbl">
           {pct1(top)}
         </text>
