@@ -1,7 +1,8 @@
 /*
  * Brace. A chart recorder in a monitoring room: recording paper, one Solana
  * violet pen, mono figures. Brand tokens restored exactly from main (5966369):
- * accent #7b2ff2 / hover #6a22db light, #9945ff / #a65bff dark, focus #b98aff,
+ * accent #7b2ff2 / hover #6a22db light, #9945ff dark (hover #8b3dff, darker than
+ * main #a65bff so white text keeps 4.5:1), accent text #b98aff dark,
  * live #14f195, stale #b45309 / #d97706, neutrals #fafafa and #141415. Flat
  * colours only. 4px grid, 8px controls.
  */
@@ -60,7 +61,7 @@
     --grid-minor: rgba(var(--rgb), 0.03);
     --grid-major: rgba(var(--rgb), 0.065);
     --accent: #9945ff;
-    --accent-hover: #a65bff;
+    --accent-hover: #8b3dff;
     --accent-ink: #b98aff;
     --accent-soft: rgba(153, 69, 255, 0.14);
     --on-accent: #ffffff;
@@ -91,7 +92,7 @@
   --grid-minor: rgba(var(--rgb), 0.03);
   --grid-major: rgba(var(--rgb), 0.065);
   --accent: #9945ff;
-  --accent-hover: #a65bff;
+  --accent-hover: #8b3dff;
   --accent-ink: #b98aff;
   --accent-soft: rgba(153, 69, 255, 0.14);
   --on-accent: #ffffff;
@@ -123,7 +124,7 @@
   --grid-minor: rgba(var(--rgb), 0.03);
   --grid-major: rgba(var(--rgb), 0.065);
   --accent: #9945ff;
-  --accent-hover: #a65bff;
+  --accent-hover: #8b3dff;
   --accent-ink: #b98aff;
   --accent-soft: rgba(153, 69, 255, 0.14);
   --on-accent: #ffffff;
