@@ -7,12 +7,22 @@ import { fetchEvents, fetchSpotE6 } from "./gemini.ts";
 import { cacheFor, HEALTH_TTL_SECS, READ_TTL_SECS } from "./cache.ts";
 import { parseLimit, parseSinceStrict, toActionRecord, toHistoryRecord } from "./history.ts";
 import { onchainPostedAt } from "./onchain.ts";
-import { uniqueSigs, applySignatureStatuses, type PendingSig } from "./confirm.ts";
+import {
+  uniqueSigs,
+  applySignatureStatuses,
+  PENDING_EXPIRE_SECS,
+  PENDING_STALE_SECS,
+  type PendingSig,
+  type SignatureStatusLike,
+} from "./confirm.ts";
 import { parseRpcUrls, rotateUrls, rpcAwareFetch, withRpcFallback } from "./rpc.ts";
 import { selectLadder } from "./select.ts";
 import { buildHealthReport, D1Store, type BraceStore, type RelayerAssetState, type RelayerRunState } from "./store.ts";
 import { ingestPayload } from "./streams.ts";
 import { packPostBatches, type PackedPost } from "./tx.ts";
+
+/** getSignatureStatuses accepts at most 256 signatures per request. */
+const SIG_STATUS_CHUNK = 256;
 
 export type Env = {
   PROGRAM_ID: string;
@@ -146,29 +156,43 @@ export async function confirmPendingSigs(
 ): Promise<{ failed: (PendingSig & { error: string })[]; stillPending: Set<string> }> {
   const stillPending = new Set<string>();
   if (!store && !state.pending.length) return { failed: [], stillPending };
+  const staleBefore = nowSeconds - PENDING_STALE_SECS;
+  // Old pending rows can never block a post: drop them from memory and from D1, and only read recent ones.
+  state.pending = state.pending.filter((p) => p.submittedAt >= staleBefore);
   let stored: PendingSig[] = [];
   if (store) {
     try {
-      stored = await store.listPendingSigs();
+      await store.purgePendingSigs(staleBefore);
+    } catch (err) {
+      noteStoreError("purgePendingSigs", err);
+    }
+    try {
+      stored = await store.listPendingSigs(staleBefore);
     } catch (err) {
       // D1 down: keep posting; only signatures held in memory are confirmed this tick.
       noteStoreError("listPendingSigs", err);
     }
   }
-  const pending = dedupePending([...stored, ...state.pending]);
+  const pending = dedupePending([...stored, ...state.pending]).filter((p) => p.submittedAt >= staleBefore);
   if (!pending.length) return { failed: [], stillPending };
   const sigs = uniqueSigs(pending);
   try {
-    const { result: statuses } = await withRpcFallback(
-      urls,
-      async (url) => {
-        const res = await rpcConnection(url, rpcFetch).getSignatureStatuses(sigs, {
-          searchTransactionHistory: true,
-        });
-        return res.value;
-      },
-      LEAN_RPC,
-    );
+    const statuses: (SignatureStatusLike | undefined)[] = [];
+    // getSignatureStatuses takes at most 256 signatures per call.
+    for (let i = 0; i < sigs.length; i += SIG_STATUS_CHUNK) {
+      const chunk = sigs.slice(i, i + SIG_STATUS_CHUNK);
+      const { result } = await withRpcFallback(
+        urls,
+        async (url) => {
+          const res = await rpcConnection(url, rpcFetch).getSignatureStatuses(chunk, {
+            searchTransactionHistory: true,
+          });
+          return res.value;
+        },
+        LEAN_RPC,
+      );
+      statuses.push(...result);
+    }
     const statusBySig = new Map<string, { err?: unknown; confirmationStatus?: string | null } | null>();
     sigs.forEach((sig, i) => statusBySig.set(sig, statuses[i] ?? null));
     const outcome = applySignatureStatuses(pending, statusBySig, nowSeconds);
@@ -191,7 +215,9 @@ export async function confirmPendingSigs(
     // Don't abort the tick if confirm fails; keep pending and still try to post.
     const message = err instanceof Error ? err.message : String(err);
     console.log(`brace confirm error: ${message}`);
-    for (const p of pending) stillPending.add(p.asset);
+    // Status unknown. Only a recent signature holds its asset back; an older one has expired either
+    // way, so it must not stop the feed from posting (a stuck queue used to block every asset).
+    for (const p of pending) if (nowSeconds - p.submittedAt < PENDING_EXPIRE_SECS) stillPending.add(p.asset);
     return { failed: [], stillPending };
   }
 }

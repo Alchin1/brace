@@ -1,6 +1,11 @@
 /** Lazy confirmation of fire-and-forget sendTransaction signatures. */
 
 export const PENDING_EXPIRE_SECS = 90;
+/**
+ * Pending rows older than this are purged and never read again. A blockhash is only valid for
+ * about 150 slots (roughly a minute), so a signature this old has landed or never will.
+ */
+export const PENDING_STALE_SECS = 600;
 
 export type PendingSig = {
   sig: string;

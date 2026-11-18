@@ -16,7 +16,7 @@ const NOW = 1_794_970_000;
 
 const STORE_METHODS = [
   "upsertPost", "upsertAction", "listPosts", "listActions", "saveRelayerRun", "loadRelayerRun",
-  "latestPostTsByAsset", "listPendingSigs", "addPendingSigs", "removePendingSigs",
+  "latestPostTsByAsset", "listPendingSigs", "purgePendingSigs", "addPendingSigs", "removePendingSigs",
 ] as const;
 
 /** MemoryStore that throws the D1 limit error from every call while `down` is true. */
@@ -196,6 +196,39 @@ describe("read cache: same answers as D1, far fewer rows read", () => {
     expect(store.postRowsRead - loaded).toBe(2);
     const direct = await historyResponse(store, "SOL", since);
     expect(r.body).toEqual(JSON.parse(JSON.stringify(direct)));
+  });
+
+  test("/history?asset=X with no since: newest rows read once, then only deltas; output equals the direct query", async () => {
+    const store = new FlakyStore();
+    for (let t = NOW - 3 * 86_400; t <= NOW; t += 60) store.posts.push(post(t), post(t, "BTC"));
+    const e = env(store);
+    const first = await get(e, `/history?asset=SOL`);
+    expect(first.res.status).toBe(200);
+    expect(store.postRowsRead).toBe(3 * 1440 + 1);
+    expect(first.body).toEqual(JSON.parse(JSON.stringify(await historyResponse(store, "SOL", undefined))));
+    const loaded = store.postRowsRead; // includes the direct comparison read above
+
+    for (let i = 1; i <= 5; i++) {
+      vi.setSystemTime((NOW + i) * 1000);
+      const r = await get(e, `/history?asset=SOL&limit=100`);
+      expect(r.res.headers.get("x-brace-cache")).toBe("cache");
+      expect((r.body as unknown[]).length).toBe(100);
+    }
+    expect(store.postRowsRead).toBe(loaded);
+
+    store.posts.push(post(NOW + 60));
+    vi.setSystemTime((NOW + 61) * 1000);
+    const r = await get(e, `/history?asset=SOL&limit=500`);
+    expect(store.postRowsRead - loaded).toBe(2);
+    expect(r.res.headers.get("x-brace-cache")).toBe("d1");
+    expect(r.body).toEqual(JSON.parse(JSON.stringify(await historyResponse(store, "SOL", undefined, 500))));
+
+    // D1 goes down: the deep copy is served, marked stale.
+    store.down = true;
+    vi.setSystemTime((NOW + 200) * 1000);
+    const stale = await get(e, `/history?asset=SOL&limit=10`);
+    expect(stale.res.status).toBe(200);
+    expect(stale.res.headers.get("x-brace-cache")).toBe("stale");
   });
 
   test("limit and since paging match the direct query from the cached window", async () => {

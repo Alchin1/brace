@@ -15,6 +15,8 @@ export const READ_TTL_SECS = 30;
 export const POST_WINDOW_SECS = 26 * 3600;
 /** Full re-read of a window this often, so any late Stream row is picked up. */
 export const FULL_RELOAD_SECS = 1800;
+/** The deep window (newest MAX_ROWS posts per asset, for /history without since) is fully re-read this often. */
+export const DEEP_RELOAD_SECS = 3600;
 /** /health is served from memory this long. */
 export const HEALTH_TTL_SECS = 15;
 const MEMO_MAX = 64;
@@ -22,6 +24,7 @@ const MEMO_MAX = 64;
 export type CachedRead<T> = { rows: T[]; source: "d1" | "cache" | "stale"; storeError?: string };
 
 type PostWindow = { start: number; rows: PostRow[]; fetchedAt: number; loadedAt: number };
+type DeepWindow = { rows: PostRow[]; fetchedAt: number; loadedAt: number };
 type Memo<T> = { at: number; rows: T[] };
 
 function cmp(a: string, b: string): number {
@@ -38,6 +41,8 @@ function errMessage(err: unknown): string {
 
 export class ReadCache {
   windows = new Map<string, PostWindow>();
+  /** Per asset, the newest MAX_ROWS posts, kept up to date with delta reads. */
+  deep = new Map<string, DeepWindow>();
   memo = new Map<string, Memo<unknown>>();
   health: { at: number; report: HealthReport & { storeError: string | null } } | null = null;
 
@@ -46,10 +51,12 @@ export class ReadCache {
     this.memo.clear();
     this.health = null;
     for (const w of this.windows.values()) w.fetchedAt = Number.NEGATIVE_INFINITY;
+    for (const w of this.deep.values()) w.fetchedAt = Number.NEGATIVE_INFINITY;
   }
 
   clear(): void {
     this.windows.clear();
+    this.deep.clear();
     this.memo.clear();
     this.health = null;
   }
@@ -85,6 +92,7 @@ export class ReadCache {
     limit: number,
     now: number,
   ): Promise<CachedRead<PostRow>> {
+    if (asset !== undefined && since === undefined) return this.deepPosts(store, asset, limit, now);
     const windowed = asset !== undefined && since !== undefined && since >= now - POST_WINDOW_SECS && since <= now + 3600;
     if (!windowed) {
       return this.memoized(`p|${asset ?? ""}|${since ?? ""}|${limit}`, now, async () =>
@@ -130,6 +138,42 @@ export class ReadCache {
       throw err;
     }
     return { rows: w.rows.filter((r) => r.ts >= since).slice(0, limit), source };
+  }
+
+  /**
+   * /history?asset=X with no since: the newest `limit` rows. Those used to be re-read in full (up to
+   * MAX_ROWS rows) on every poll; now the newest MAX_ROWS rows are read once per DEEP_RELOAD_SECS and
+   * only rows at or after the newest cached ts are read in between.
+   */
+  private async deepPosts(store: BraceStore, asset: string, limit: number, now: number): Promise<CachedRead<PostRow>> {
+    let w = this.deep.get(asset);
+    let source: CachedRead<PostRow>["source"] = "cache";
+    const full = async (): Promise<DeepWindow> => {
+      const rows = await store.listPosts(asset, undefined, MAX_ROWS);
+      return { rows: [...rows].sort(comparePosts), fetchedAt: now, loadedAt: now };
+    };
+    try {
+      if (!w || now - w.loadedAt >= DEEP_RELOAD_SECS) {
+        w = await full();
+        source = "d1";
+      } else if (now - w.fetchedAt >= READ_TTL_SECS) {
+        const maxTs = w.rows.length ? w.rows[w.rows.length - 1].ts : 0;
+        const delta = await store.listPosts(asset, maxTs, MAX_ROWS);
+        if (delta.length >= MAX_ROWS) {
+          w = await full();
+        } else {
+          let rows = w.rows.filter((r) => r.ts < maxTs).concat(delta).sort(comparePosts);
+          if (rows.length > MAX_ROWS) rows = rows.slice(rows.length - MAX_ROWS);
+          w = { rows, fetchedAt: now, loadedAt: w.loadedAt };
+        }
+        source = "d1";
+      }
+      this.deep.set(asset, w);
+    } catch (err) {
+      if (w) return { rows: windowRows(w.rows, undefined, limit), source: "stale", storeError: errMessage(err) };
+      throw err;
+    }
+    return { rows: windowRows(w.rows, undefined, limit), source };
   }
 
   /**

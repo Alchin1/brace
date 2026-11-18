@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import { describe, expect, test } from "vitest";
-import { PENDING_EXPIRE_SECS } from "../src/confirm.ts";
+import { PENDING_EXPIRE_SECS, PENDING_STALE_SECS } from "../src/confirm.ts";
 import { persistRun, resetMemoryState, runOnce } from "../src/index.ts";
 import { MemoryStore } from "../src/store.ts";
 import type { Env } from "../src/index.ts";
@@ -208,6 +208,58 @@ describe("runOnce RPC minimization", () => {
     const zec = run.assets.find((a) => a.asset === "ZEC");
     expect(zec?.lastSig).toBeTruthy();
     expect(zec?.lastError).toBeNull();
+  });
+
+  test("a backlog of old pending sigs is purged and cannot block posting, even when statuses 429", async () => {
+    const store = new MemoryStore();
+    // What D1 held on Nov 18: reads blocked by the daily limit while every tick still added rows.
+    const old = Array.from({ length: 1100 }, (_, i) => ({
+      sig: `OldSig${i}`,
+      asset: ["SOL", "BTC", "ETH", "XRP", "ZEC"][i % 5],
+      submittedAt: NOW - PENDING_STALE_SECS - 60 - i,
+    }));
+    await store.addPendingSigs(old);
+    const rpcCalls: RpcCall[] = [];
+    const fetchFn = makeFetch({ rpcCalls });
+    const failing = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const raw = init?.body ? String(init.body) : "";
+      if (raw.includes("getSignatureStatuses")) return new Response("Too Many Requests", { status: 429 });
+      return fetchFn(input, init);
+    }) as typeof fetch;
+    const results = await runOnce(makeEnv(store), NOW, failing);
+    expect(results.filter((r) => r.sig).map((r) => r.asset).sort()).toEqual(["BTC", "ETH", "SOL", "XRP", "ZEC"]);
+    const left = store.pending.filter((p) => p.submittedAt < NOW - PENDING_STALE_SECS);
+    expect(left).toHaveLength(0);
+  });
+
+  test("statuses 429 with a recent pending sig: only that asset waits", async () => {
+    const store = new MemoryStore();
+    await store.addPendingSigs([
+      { sig: "FreshSol", asset: "SOL", submittedAt: NOW - 20 },
+      { sig: "OlderBtc", asset: "BTC", submittedAt: NOW - PENDING_EXPIRE_SECS - 5 },
+    ]);
+    const rpcCalls: RpcCall[] = [];
+    const fetchFn = makeFetch({ rpcCalls });
+    const failing = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const raw = init?.body ? String(init.body) : "";
+      if (raw.includes("getSignatureStatuses")) return new Response("Too Many Requests", { status: 429 });
+      return fetchFn(input, init);
+    }) as typeof fetch;
+    const results = await runOnce(makeEnv(store), NOW, failing);
+    expect(results.find((r) => r.asset === "SOL" && r.skipped === "pending confirmation")).toBeTruthy();
+    expect(results.filter((r) => r.sig).map((r) => r.asset).sort()).toEqual(["BTC", "ETH", "XRP", "ZEC"]);
+  });
+
+  test("a big pending backlog never sends more than 256 signatures in one getSignatureStatuses call", async () => {
+    const store = new MemoryStore();
+    const rows = Array.from({ length: 300 }, (_, i) => ({ sig: `Recent${i}`, asset: "SOL", submittedAt: NOW - 10 }));
+    // The store hands back at most PENDING_READ_MAX (200) per tick.
+    await store.addPendingSigs(rows);
+    const rpcCalls: RpcCall[] = [];
+    await runOnce(makeEnv(store), NOW, makeFetch({ rpcCalls }));
+    const calls = rpcCalls.filter((c) => c.method === "getSignatureStatuses");
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    for (const c of calls) expect((c.params as [string[]])[0].length).toBeLessThanOrEqual(256);
   });
 
   test("retries the same signed bytes on the next RPC when sendTransaction 429s", async () => {

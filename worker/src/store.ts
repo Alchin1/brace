@@ -57,6 +57,9 @@ export type HealthReport = {
   feeds: Record<string, FeedHealth>;
 };
 
+/** Most pending rows one cron tick reads. getSignatureStatuses takes 256 signatures per call. */
+export const PENDING_READ_MAX = 200;
+
 export interface BraceStore {
   upsertPost(row: PostRow): Promise<void>;
   upsertAction(row: ActionRow): Promise<void>;
@@ -67,7 +70,10 @@ export interface BraceStore {
   saveRelayerRun(state: RelayerRunState, prev?: RelayerRunState): Promise<void>;
   loadRelayerRun(): Promise<RelayerRunState>;
   latestPostTsByAsset(): Promise<Record<string, number>>;
-  listPendingSigs(): Promise<PendingSig[]>;
+  /** Pending signatures submitted at or after `minSubmittedAt`, oldest first, at most PENDING_READ_MAX. */
+  listPendingSigs(minSubmittedAt?: number): Promise<PendingSig[]>;
+  /** Drop pending signatures submitted before `before` (they can never block a post again). */
+  purgePendingSigs(before: number): Promise<void>;
   addPendingSigs(rows: PendingSig[]): Promise<void>;
   removePendingSigs(rows: { sig: string; asset: string }[]): Promise<void>;
 }
@@ -148,8 +154,16 @@ export class MemoryStore implements BraceStore {
     return out;
   }
 
-  async listPendingSigs(): Promise<PendingSig[]> {
-    return this.pending.map((p) => ({ ...p }));
+  async listPendingSigs(minSubmittedAt?: number): Promise<PendingSig[]> {
+    return this.pending
+      .filter((p) => (minSubmittedAt !== undefined ? p.submittedAt >= minSubmittedAt : true))
+      .sort((a, b) => a.submittedAt - b.submittedAt || a.asset.localeCompare(b.asset))
+      .slice(0, PENDING_READ_MAX)
+      .map((p) => ({ ...p }));
+  }
+
+  async purgePendingSigs(before: number): Promise<void> {
+    this.pending = this.pending.filter((p) => p.submittedAt >= before);
   }
 
   async addPendingSigs(rows: PendingSig[]): Promise<void> {
@@ -310,15 +324,22 @@ export class D1Store implements BraceStore {
     return out;
   }
 
-  async listPendingSigs(): Promise<PendingSig[]> {
+  async listPendingSigs(minSubmittedAt?: number): Promise<PendingSig[]> {
     const res = await this.db
-      .prepare(`SELECT sig, asset, submitted_at FROM pending_sigs ORDER BY submitted_at ASC, asset ASC`)
+      .prepare(
+        `SELECT sig, asset, submitted_at FROM pending_sigs WHERE submitted_at >= ? ORDER BY submitted_at ASC, asset ASC LIMIT ?`,
+      )
+      .bind(minSubmittedAt ?? 0, PENDING_READ_MAX)
       .all<{ sig: string; asset: string; submitted_at: number }>();
     return (res.results ?? []).map((r) => ({
       sig: r.sig,
       asset: r.asset,
       submittedAt: r.submitted_at,
     }));
+  }
+
+  async purgePendingSigs(before: number): Promise<void> {
+    await this.db.prepare(`DELETE FROM pending_sigs WHERE submitted_at < ?`).bind(before).run();
   }
 
   async addPendingSigs(rows: PendingSig[]): Promise<void> {
