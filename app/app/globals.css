@@ -5441,3 +5441,162 @@ body::before {
 .stage-grid.is-solo .stage-data {
   margin-top: 0;
 }
+
+/* ---- v5b: deep bands melt into the page instead of sitting on it as boxes ---- */
+
+/* Shared: the deep colour lives on ::before with soft faded edges; content
+   always sits above it at full opacity. */
+.band.ink,
+.closer {
+  background: transparent;
+  isolation: isolate;
+}
+.band.ink::after {
+  display: none;
+}
+.band.ink::before,
+.closer::before {
+  z-index: -1;
+  opacity: 1;
+  background:
+    image-set(url("/scene/ribbons.avif") type("image/avif"), url("/scene/ribbons.webp") type("image/webp")) center / cover no-repeat,
+    #0c0a22;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 72px, #000 calc(100% - 72px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 72px, #000 calc(100% - 72px), transparent 100%);
+}
+.band.ink,
+.closer:not(.is-inline) {
+  padding-top: max(104px, var(--band-pad, 0px));
+  padding-bottom: 112px;
+}
+.closer::before {
+  transform: scaleX(-1);
+}
+.closer > *,
+.band.ink > * {
+  position: relative;
+  z-index: 1;
+}
+.closer h2 {
+  color: var(--text);
+}
+.closer p {
+  color: var(--text-2);
+}
+
+/* About page closer: a rounded pool of the same light, edges fading out on all sides */
+.closer.is-inline {
+  margin: 64px 0 0;
+  padding: 72px 48px;
+  border-radius: 28px;
+  overflow: visible;
+}
+.closer.is-inline::before {
+  inset: 0;
+  border-radius: inherit;
+  transform: none;
+  --fx: 44px;
+  --fy: 52px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fx), #000 calc(100% - var(--fx)), transparent 100%),
+    linear-gradient(180deg, transparent 0, #000 var(--fy), #000 calc(100% - var(--fy)), transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, transparent 0, #000 var(--fx), #000 calc(100% - var(--fx)), transparent 100%),
+    linear-gradient(180deg, transparent 0, #000 var(--fy), #000 calc(100% - var(--fy)), transparent 100%);
+  mask-composite: intersect;
+}
+.closer.is-inline .text-link {
+  color: var(--text);
+}
+@media (max-width: 899px) {
+  .closer.is-inline {
+    padding: 56px 24px;
+    margin-left: calc(-1 * var(--gutter) + 4px);
+    margin-right: calc(-1 * var(--gutter) + 4px);
+    border-radius: 24px;
+  }
+  .closer.is-inline::before {
+    --fx: 20px;
+    --fy: 40px;
+  }
+}
+
+/* Small type that sat under 4.5:1 on glass */
+.brand .net,
+.ch-axis-t {
+  color: var(--text-2);
+}
+
+/* Hero secondary link: a frosted chip so it reads over the glass art on phones */
+@media (max-width: 899px) {
+  .stage-copy .actions .text-link {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--page) 78%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: var(--text);
+  }
+}
+
+/* Scrims: ribbons stay bright where there is no type, and sit dimmed under it */
+.band.ink::before {
+  background:
+    linear-gradient(180deg, rgba(12, 10, 34, 0.78) 0, rgba(12, 10, 34, 0.5) 30%, rgba(12, 10, 34, 0.45) 70%, rgba(12, 10, 34, 0.7) 100%),
+    image-set(url("/scene/ribbons.avif") type("image/avif"), url("/scene/ribbons.webp") type("image/webp")) center / cover no-repeat,
+    #0c0a22;
+}
+/* The home closer's ::before is mirrored, so "right" here is the text side */
+.closer:not(.is-inline)::before {
+  background:
+    linear-gradient(90deg, rgba(12, 10, 34, 0.1) 0, rgba(12, 10, 34, 0.45) 40%, rgba(12, 10, 34, 0.86) 75%),
+    image-set(url("/scene/ribbons.avif") type("image/avif"), url("/scene/ribbons.webp") type("image/webp")) center / cover no-repeat,
+    #0c0a22;
+}
+.closer.is-inline::before {
+  background:
+    linear-gradient(90deg, rgba(12, 10, 34, 0.86) 0, rgba(12, 10, 34, 0.7) 55%, rgba(12, 10, 34, 0.35) 100%),
+    image-set(url("/scene/ribbons.avif") type("image/avif"), url("/scene/ribbons.webp") type("image/webp")) center / cover no-repeat,
+    #0c0a22;
+}
+@media (max-width: 899px) {
+  .closer:not(.is-inline)::before {
+    background:
+      linear-gradient(180deg, rgba(12, 10, 34, 0.8) 0, rgba(12, 10, 34, 0.7) 55%, rgba(12, 10, 34, 0.2) 100%),
+      image-set(url("/scene/ribbons.avif") type("image/avif"), url("/scene/ribbons.webp") type("image/webp")) center / cover no-repeat,
+      #0c0a22;
+  }
+  .closer.is-inline::before {
+    background:
+      linear-gradient(180deg, rgba(12, 10, 34, 0.84) 0, rgba(12, 10, 34, 0.74) 70%, rgba(12, 10, 34, 0.4) 100%),
+      image-set(url("/scene/ribbons.avif") type("image/avif"), url("/scene/ribbons.webp") type("image/webp")) center / cover no-repeat,
+      #0c0a22;
+  }
+}
+.ink .rungs,
+.ink .wsheet {
+  background: rgba(14, 11, 40, 0.8);
+}
+.ink .sh-d,
+.ink .rungs-foot,
+.ink .rungs-head {
+  color: var(--text-2);
+}
+.site-header.is-scrolled {
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+}
+.ink .shead-k,
+.ink .shead-d,
+.ink .shead h2,
+.closer .shead-k,
+.closer p {
+  text-shadow: 0 0 2px rgba(12, 10, 34, 0.9), 0 0 14px rgba(12, 10, 34, 0.85);
+}
+@media (min-width: 900px) {
+  .band.ink::before {
+    background:
+      linear-gradient(180deg, rgba(12, 10, 34, 0.92) 0, rgba(12, 10, 34, 0.76) 26%, rgba(12, 10, 34, 0.45) 62%, rgba(12, 10, 34, 0.7) 100%),
+      image-set(url("/scene/ribbons.avif") type("image/avif"), url("/scene/ribbons.webp") type("image/webp")) center / cover no-repeat,
+      #0c0a22;
+  }
+}

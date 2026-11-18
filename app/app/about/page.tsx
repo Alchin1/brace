@@ -128,7 +128,7 @@ export default function AboutPage() {
         </div>
       </div>
 
-      <section className="closer is-inline" aria-labelledby="ab-close">
+      <section className="closer is-inline ink" aria-labelledby="ab-close">
         <h2 id="ab-close">See it refuse a borrow</h2>
         <p>Borrow over the live limit and the program rejects it onchain with error 6005, RiskTightened.</p>
         <div className="actions">
