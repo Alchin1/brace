@@ -9,11 +9,11 @@ Paste-ready fields for https://ubc-hackathon-2026.devpost.com. Checked against t
 | Item | Why | Where it goes |
 |---|---|---|
 | Video link (YouTube, unlisted, 2 to 3 min) | Must be recorded on the phone (docs/demo-script.md) | Video demo link field; README line 19 |
-| BL's full name and Devpost account | Teammates are added by Devpost invite and must accept it | Team section |
+| Omar's Devpost account | Teammates are added by Devpost invite and must accept it | Team section |
 | Alchin's Devpost account | Same | Team section |
 | Alchin's hit rate, or confirm there is none | Never invent it | Story Proof list, README Proof section, video shot 8 |
 | Grok Bot bounty: yes or no | Needs a Grok Bot chat export only Oh-Jay can download, see below | Bounty choice |
-| Who attends in person on Sat Nov 21 | Rules: participants must be present in person during final presentations to qualify for prizes. Oh-Jay is remote, so Alchin and BL need to be there. Ask the organizers on Telegram if a remote member affects eligibility | Not a form field |
+| Who attends in person on Sat Nov 21 | Rules: participants must be present in person during final presentations to qualify for prizes. Oh-Jay is remote, so Alchin and Omar need to be there. Ask the organizers on Telegram if a remote member affects eligibility | Not a form field |
 | reCAPTCHA, terms checkbox, Submit | Needs a person | Last step |
 
 ## Step 1: Project overview
@@ -54,7 +54,7 @@ Names below are copied from the Devpost prize list.
 | Working demo or deployed app | Met | https://brace-ivory.vercel.app |
 | 2 to 3 minute video on YouTube or Google Drive, accessible to judges | Needs Oh-Jay | docs/demo-script.md |
 | README with technical docs and architecture overview | Met | README How It Works (diagram) |
-| All team members listed | Needs BL's name and both teammates' Devpost accounts | Team section |
+| All team members listed | Needs both teammates' Devpost accounts (Alchin Daryabari, Omar Dosuyev) | Team section |
 
 ## Step 3: Written answers
 

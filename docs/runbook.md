@@ -88,7 +88,7 @@ Not drilled: there is no Vercel login or token on the box, and a production roll
 | Fri Nov 20, 3:00 PM | Team target to submit on Devpost | docs/submission-draft.md |
 | **Fri Nov 20, 7:00 PM** | **Devpost hard deadline** (12:00 PM CST) | Nothing can be added after this |
 | Sat Nov 21, 6:59 AM | Finalists notified (Fri Nov 20, 11:59 PM CST) | Check email and Telegram |
-| Sat Nov 21 | In-person judging and closing ceremony. Finalists get 5 min pitch and 2 min Q&A. Prizes need people present in person | Alchin and BL; docs/pitch.md |
+| Sat Nov 21 | In-person judging and closing ceremony. Finalists get 5 min pitch and 2 min Q&A. Prizes need people present in person | Alchin and Omar; docs/pitch.md |
 | Sun Nov 22, 3:00 PM | BCH BLAZE (Holdfast) closes. Separate project | Do not touch its services while working on Brace |
 | Daily, about 11:00 PM | SOL, ETH, XRP and ZEC ladders the Worker used today expired at 23:00 WAT (22:00 UTC tickers). BTC also has hourly ladders | Nothing. The Worker picks the earliest ladder 15 minutes to 72 hours out each minute. If Gemini lists none in that window, that asset's limit holds, then steps down |
 | About mid-December (exact date unknown) | QuickNode Build plan from the UBC coupon ends (a free month, per Oh-Jay on Nov 17) | Check the QuickNode billing page. After it ends, History stops updating unless the plan is renewed |

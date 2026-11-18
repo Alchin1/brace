@@ -205,7 +205,7 @@ Reviewed in five separate passes (correctness, access control, financial logic, 
 - Runtime: Anchor 1.2.2 (`anchor-lang`, `anchor-spl` with SPL Token), `@solana/web3.js` 1.99.0, Next.js 15.5.29, React 19.3.1.
 - Development: LiteSVM 0.15.0, Vitest 5.1.0 (app and worker), TypeScript 5.9.3, Wrangler 4.163.0.
 - Services: Gemini Prediction Markets public API, Solana devnet, Cloudflare Workers, QuickNode Streams, Vercel.
-- Team: Oh-Jay (build), Alchin Daryabari and BL (pitch, accuracy tracker).
+- Team: Oh-Jay (build), Alchin Daryabari and Omar Dosuyev (pitch, accuracy tracker).
 
 ## License
 

@@ -1,6 +1,6 @@
 # Progress
 
-Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third student (Austin from Nov 18).
+Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), Omar Dosuyev (pitch, Austin from Nov 18).
 
 | # | Task | Status | Gate proof | Commit |
 |---|---|---|---|---|
@@ -24,7 +24,7 @@ Team: Oh-Jay (build, remote), Alchin (pitch, accuracy tracker, Austin), third st
 | B6b | Front-end fixes from B6 (favicon, og image, 44px targets, 404 link, RPC and relayer timeouts with plain errors, Submit anyway note) | done (Grok), approved by Oh-Jay | app vitest 72/72 (was 63), tsc clean, build ok; fresh-clone `scripts/verify.sh` exit 0; live favicon, icon, og and twitter images 200, og/twitter tags on every page; 404 has Back to the board; screenshots /workspace/brace-shots/b6/fe/ | a762ed7, 93ea3bc, (this commit) |
 | B7-B9 prep + ops | Phone shot list (B7), paste-ready Devpost draft (B8), pitch and Q&A (B9), rollback runbook and drill, expiry calendar | done (Grok); B7 video, B8 submit and B9 delivery need the team | guide read in full; README gaps fixed (economic design, Stream dataset); Worker rollback drilled live v8 to v7 to v8 with health green; fresh clone `scripts/verify.sh` exit 0 at 7c4cb2f (cargo 52/52, worker 76/76, app 72/72); go/no-go 8 yes, 6 no | 77c1d77, 7c4cb2f, (this commit) |
 
-Next up: placeholders remain in the README for the film link (B7) and Alchin's hit rate (B4). Oh-Jay forwards the /history link to Alchin. B6 is done (docs/b6-recheck.md). Open items are listed there. See docs/HANDOFF.md Part C.
+Next up: placeholders remain in the README for the film link (B7) and Alchin's hit rate (B4). Oh-Jay forwards the /history link to Alchin. B6 is done (docs/b6-recheck.md). Open items are listed there.
 
 ## Session log
 

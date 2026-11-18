@@ -1,4 +1,4 @@
-# Pitch (for Alchin and BL)
+# Pitch (for Alchin and Omar)
 
 Plain words, no slides needed for the short version. Every number here is checked against a source listed under "Numbers". If a number is marked TBD, say "we have not measured that yet", never a guess.
 
