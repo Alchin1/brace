@@ -5912,6 +5912,15 @@ body::before,
     transform: none;
   }
 }
+/* Lift only, no fade: a fade from 0 delayed LCP onto the lede (~2.9s). */
+@keyframes lift-in {
+  from {
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    transform: none;
+  }
+}
 /* If an animation never finishes, snap to the rest state at 3.5s. */
 @keyframes enter-safe {
   to {
@@ -5942,7 +5951,7 @@ body::before,
   .stage-copy .kick,
   .stage-copy .lede {
     animation:
-      fade-lift 620ms cubic-bezier(0.16, 1, 0.3, 1) 740ms both,
+      lift-in 620ms cubic-bezier(0.16, 1, 0.3, 1) 740ms both,
       enter-safe 1ms linear 3500ms forwards;
   }
   .stage-copy .actions {
