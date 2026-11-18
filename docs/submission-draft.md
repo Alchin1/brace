@@ -51,7 +51,7 @@ Names below are copied from the Devpost prize list.
 | Gemini: use the Prediction Markets API (market data and/or trading) | Met, market data only. The guide's "and/or" answers the office-hours question: market data alone qualifies | worker/src/gemini.ts |
 | QuickNode: Streams as a core data source; one Stream with a filter and destination; README explains network, dataset, filter, destination and why | Met (dataset and why added Nov 17) | README QuickNode Streams; worker/filters/brace-program.js |
 | Repo public, created during the week (work before Nov 13 not allowed) | Met. First commit Nov 15, 23:14 Lagos | README Built During UBC 2026 |
-| Working demo or deployed app | Met | https://brace-ivory.vercel.app |
+| Working demo or deployed app | Met | https://braced.vercel.app |
 | 2 to 3 minute video on YouTube or Google Drive, accessible to judges | Needs Oh-Jay | docs/demo-script.md |
 | README with technical docs and architecture overview | Met | README How It Works (diagram) |
 | All team members listed | Needs both teammates' Devpost accounts (Alchin Daryabari, Omar Dosuyev) | Team section |
@@ -135,9 +135,9 @@ solana, anchor, rust, typescript, next.js, react, vercel, cloudflare-workers, cl
 
 | Field | Value |
 |---|---|
-| Try it out | https://brace-ivory.vercel.app |
-| Try it out (borrow) | https://brace-ivory.vercel.app/borrow |
-| Try it out (history) | https://brace-ivory.vercel.app/history |
+| Try it out | https://braced.vercel.app |
+| Try it out (borrow) | https://braced.vercel.app/borrow |
+| Try it out (history) | https://braced.vercel.app/history |
 | Code repository | https://github.com/ohjay-official/brace |
 | Video demo link | **[[YOUTUBE LINK FROM OH-JAY]]** |
 | Program id (devnet), if asked | Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC |

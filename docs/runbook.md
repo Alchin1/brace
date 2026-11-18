@@ -14,7 +14,7 @@ Passes when the app returns 200, the relayer reports `ok` with no `lastError`, a
 
 | Piece | Where | If it is down |
 |---|---|---|
-| Web app | Vercel, project deploys from `main` automatically. `https://brace-ivory.vercel.app` | Nothing loads. Roll back Vercel (below). |
+| Web app | Vercel, project deploys from `main` automatically. `https://braced.vercel.app` | Nothing loads. Roll back Vercel (below). |
 | Relayer Worker `brace-relayer` | Cloudflare account `f5541f7a5c900e912b145e07fbc95d63`, cron every minute | Feeds stop updating. The program holds the last limit 5 minutes, then steps it down; after an hour borrowing pauses. Roll back the Worker (below). |
 | Program `Frv6CVJKADmkM2cnBSMKgBWPvtHsfYkfye5d4vB84WyC` | Solana devnet | Borrow page and board cannot read. Wait out devnet; nothing to roll back. |
 | History (`/history`, `/actions`) | QuickNode Stream `brace-program` to Worker `/streams`, stored in D1 | History page goes quiet. Board and borrow still work. Check the Stream in the QuickNode dashboard. |
@@ -70,7 +70,7 @@ Vercel builds every push to `main`. If a push breaks production:
 
 1. Vercel dashboard, the Brace project, overview page.
 2. On the Production Deployment tile, click **Instant Rollback**, pick the previous deployment, **Continue**, then **Confirm Rollback**. On the Hobby plan only the immediately previous deployment is offered.
-3. Open `https://brace-ivory.vercel.app` and check the board loads.
+3. Open `https://braced.vercel.app` and check the board loads.
 
 After a rollback, Vercel stops putting new pushes on the production domain. To go back to normal, fix `main`, then on the overview page click **Manage** on the Production Deployment tile and promote the new deployment (or run `vercel promote <deployment url>`). Until then, pushes to `main` will not go live.
 

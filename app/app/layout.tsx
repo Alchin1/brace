@@ -3,21 +3,23 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BoardProvider } from "@/components/BoardProvider";
 import { Footer, Header } from "@/components/Chrome";
+import { SITE_URL } from "@/lib/site";
 
 const sans = Geist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-geist-sans", display: "swap" });
 const mono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-geist-mono", display: "swap" });
 
-const SITE_URL = "https://brace-ivory.vercel.app";
 const TITLE = "Brace: lending limits from live prediction-market odds";
 const DESCRIPTION =
   "Brace reads Gemini's regulated prediction markets every minute, computes implied volatility onchain on Solana, and sets how much you can borrow.";
 
-// opengraph-image.png, twitter-image.png, icon.png, apple-icon.png and favicon.ico in this folder
+// opengraph-image.jpg, twitter-image.jpg, icon.svg, apple-icon.png, favicon.ico and manifest.ts in this folder
 // are picked up by Next and added to the head automatically.
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: TITLE, template: "%s | Brace" },
   description: DESCRIPTION,
+  applicationName: "Brace",
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     url: SITE_URL,

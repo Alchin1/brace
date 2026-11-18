@@ -1,46 +1,65 @@
-// Regenerates the brand images in app/app: icon (512px, then resized to icon.png, apple-icon.png and
-// favicon.ico with PIL) and opengraph-image.png / twitter-image.png (1200x630, no live numbers).
-// Needs playwright-core and Chrome; renders with the live site fonts. Output goes to OUT.
-import { chromium } from 'playwright-core';
-const OUT = '/workspace/b6/assets';
-const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
-async function render(w, h, html, file, transparent = false) {
-  const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, colorScheme: 'light' });
-  const page = await ctx.newPage();
-  await page.goto('https://brace-ivory.vercel.app/about', { waitUntil: 'networkidle' });
-  await page.evaluate((html) => {
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.body.innerHTML = html;
-    document.body.style.margin = '0';
-    document.body.style.background = 'transparent';
-    document.documentElement.style.background = 'transparent';
-  }, html);
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: `${OUT}/${file}`, omitBackground: transparent, clip: { x: 0, y: 0, width: w, height: h } });
-  await ctx.close();
+// Regenerates Brace's brand images from app/app/icon.svg (the shield and brace mark):
+//   app/app/favicon.ico (16, 32, 48), app/app/apple-icon.png (180), app/public/icon-192.png,
+//   app/public/icon-512.png, and app/app/opengraph-image.jpg / twitter-image.jpg (1200x630, no numbers).
+// Needs Playwright with Chromium (`npx playwright install chromium`) and Python 3 with Pillow.
+// Run from the repo root: node scripts/brand-assets.mjs
+import { chromium } from "playwright";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+
+const root = resolve(import.meta.dirname, "..");
+const app = join(root, "app");
+const tmp = mkdtempSync(join(tmpdir(), "brace-brand-"));
+const mark = readFileSync(join(app, "app/icon.svg"), "utf8");
+// The same mark on a dark tile with margin, for home screen icons (iOS fills transparency with black).
+const tile = mark
+  .replace('viewBox="0 0 32 32"', 'viewBox="-6 -6 44 44"')
+  .replace("</defs>", '</defs><rect x="-6" y="-6" width="44" height="44" fill="#100d26"/>');
+
+const browser = await chromium.launch();
+async function png(svg, size, file) {
+  const page = await browser.newPage({ viewport: { width: size, height: size } });
+  await page.setContent(`<body style="margin:0">${svg.replace("<svg ", `<svg width="${size}" height="${size}" `)}</body>`);
+  await page.screenshot({ path: file, omitBackground: true, clip: { x: 0, y: 0, width: size, height: size } });
+  await page.close();
 }
-// Icon: solid accent square, white B in the Geist wordmark weight.
-const icon = `<div style="width:512px;height:512px;border-radius:112px;background:#7b2ff2;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-weight:600;color:#fff;font-size:360px;letter-spacing:-0.04em;line-height:1"><span style="transform:translateY(-6px)">B</span></div>`;
-await render(512, 512, icon, 'icon-512.png', true);
-// Curve: a falling probability ladder like the board chart, no numbers.
-const pts = [];
-for (let i = 0; i <= 60; i++) { const x = i / 60; const y = 1 / (1 + Math.exp((x - 0.5) * 11)); pts.push(`${(40 + x * 400).toFixed(1)},${(40 + (1 - y) * 300).toFixed(1)}`); }
-const dots = [0.22, 0.32, 0.4, 0.47, 0.53, 0.6, 0.68, 0.78].map((x, i) => { const y = 1 / (1 + Math.exp((x - 0.5) * 11)) + [0.02, -0.03, 0.025, -0.02, 0.03, -0.025, 0.02, -0.015][i]; return `<circle cx="${40 + x * 400}" cy="${40 + (1 - y) * 300}" r="6" fill="#171717"/>`; }).join('');
-const og = `<div style="width:1200px;height:630px;background:#fafafa;color:#171717;font-family:var(--sans);display:flex;box-sizing:border-box;padding:64px 72px;position:relative">
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">
-    <div style="display:flex;align-items:baseline;gap:12px"><span style="font-size:34px;font-weight:600;letter-spacing:-0.02em">Brace</span><span style="font-family:var(--mono);font-size:20px;color:#737373">devnet</span></div>
-    <div>
-      <div style="font-size:64px;font-weight:600;letter-spacing:-0.035em;line-height:1.06;max-width:12.5ch">Lending limits that move before the market does</div>
-      <div style="margin-top:24px;font-size:24px;line-height:1.45;color:#525252;max-width:30ch">Gemini prediction markets, turned into an onchain volatility oracle for Solana lending.</div>
-    </div>
-    <div style="font-family:var(--mono);font-size:19px;color:#737373;display:flex;gap:32px;white-space:nowrap"><span>SOL · BTC · ETH · XRP · ZEC</span><span>brace-ivory.vercel.app</span></div>
-  </div>
-  <div style="width:480px;display:flex;align-items:center;justify-content:center">
-    <svg width="480" height="380" viewBox="0 0 480 380"><rect x="1" y="1" width="478" height="378" rx="16" fill="#ffffff" stroke="rgba(23,23,23,0.14)"/>
-      <line x1="40" y1="190" x2="440" y2="190" stroke="rgba(23,23,23,0.08)"/><line x1="240" y1="40" x2="240" y2="340" stroke="rgba(23,23,23,0.25)"/>
-      <polyline points="${pts.join(' ')}" fill="none" stroke="#7b2ff2" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>
-  </div>
-</div>`;
-await render(1200, 630, og, 'og-1200x630.png');
+for (const s of [16, 32, 48]) await png(mark, s, join(tmp, `f${s}.png`));
+await png(tile, 180, join(app, "app/apple-icon.png"));
+await png(tile, 192, join(app, "public/icon-192.png"));
+await png(tile, 512, join(app, "public/icon-512.png"));
+
+const hero = `file://${join(app, "public/scene/hero-dark.webp")}`;
+const og = `<html><head><style>
+body{margin:0;width:1200px;height:630px;overflow:hidden;font-family:Geist,system-ui,sans-serif;color:#f4f1ff;
+  background:#0c0a22 url(${hero}) no-repeat;background-size:1240px 698px;background-position:150px -40px;position:relative}
+.shade{position:absolute;inset:0;background:linear-gradient(90deg,#0c0a22 0%,rgba(12,10,34,.92) 38%,rgba(12,10,34,0) 66%)}
+.c{position:absolute;left:72px;top:64px;width:640px;display:flex;flex-direction:column;height:502px}
+.brand{display:flex;align-items:center;gap:14px;font-size:34px;font-weight:500}
+.net{font-family:"Geist Mono",monospace;font-size:18px;color:#b3abd9;border-left:1px solid rgba(255,255,255,.18);padding-left:14px;margin-left:2px}
+h1{font-size:68px;line-height:1.04;font-weight:500;margin:64px 0 0;letter-spacing:-.02em} h1 span{color:#c4a1ff}
+p{font-size:25px;line-height:1.4;color:#cfc8ef;margin:24px 0 0;width:560px}
+.foot{margin-top:auto;font-family:"Geist Mono",monospace;font-size:19px;color:#b3abd9;display:flex;gap:22px} .foot b{font-weight:400;color:#14F195}
+</style></head><body><div class="shade"></div><div class="c">
+<div class="brand">${mark.replace("<svg ", '<svg width="52" height="52" ')}Brace<span class="net">devnet</span></div>
+<h1>Lending limits that move <span>before</span> the market does</h1>
+<p>Gemini prediction market odds, turned into borrow limits onchain on Solana.</p>
+<div class="foot"><b>braced.vercel.app</b><span>SOL BTC ETH XRP ZEC</span></div></div></body></html>`;
+const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
+writeFileSync(join(tmp, "og.html"), og);
+await page.goto(`file://${tmp}/og.html`, { waitUntil: "load" });
+await page.waitForTimeout(400);
+await page.screenshot({ path: join(tmp, "og.png") });
 await browser.close();
+
+execFileSync("python3", ["-c", `
+from PIL import Image
+t = ${JSON.stringify(tmp)}; a = ${JSON.stringify(app)}
+ims = [Image.open(f"{t}/f{s}.png").convert("RGBA") for s in (16, 32, 48)]
+ims[2].save(f"{a}/app/favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)], append_images=ims[:2])
+og = Image.open(f"{t}/og.png").convert("RGB")
+for n in ("opengraph-image.jpg", "twitter-image.jpg"):
+    og.save(f"{a}/app/{n}", quality=88, optimize=True, progressive=True)
+`]);
+console.log("brand assets written");

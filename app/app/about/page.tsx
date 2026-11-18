@@ -5,7 +5,7 @@ import { PageHead } from "@/components/ui/PageHead";
 import { ProofLog } from "@/components/v2/ProofLog";
 import { AboutSpy } from "@/components/v2/AboutSpy";
 
-export const metadata: Metadata = { title: "About" };
+export const metadata: Metadata = { title: "About", alternates: { canonical: "/about" } };
 
 const SECTIONS = [
   { id: "problem", n: "01", t: "The problem" },

@@ -3335,7 +3335,7 @@ code,
 }
 @keyframes cv-a {
   from {
-    transform: translate3d(-22vw, 0, 0);
+    transform: translate3d(-14vw, 0, 0);
   }
   to {
     transform: none;
@@ -3343,7 +3343,7 @@ code,
 }
 @keyframes cv-b {
   from {
-    transform: translate3d(22vw, 0, 0);
+    transform: translate3d(14vw, 0, 0);
   }
   to {
     transform: none;
@@ -3380,15 +3380,16 @@ code,
 /* Scroll-linked versions where the browser supports scroll timelines */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
+    /* Closes by the time the headline has fully entered, so no word is cut at the screen edge while it is read. */
     .motion [data-in] .converge .cv-a {
       animation: cv-a linear both;
       animation-timeline: view();
-      animation-range: entry 0% cover 32%;
+      animation-range: entry 0% entry 100%;
     }
     .motion [data-in] .converge .cv-b {
       animation: cv-b linear both;
       animation-timeline: view();
-      animation-range: entry 0% cover 32%;
+      animation-range: entry 0% entry 100%;
     }
     .motion [data-in] .wsheet > li {
       animation: step-in linear both;
@@ -5892,6 +5893,7 @@ body::before,
 }
 .hl-in {
   display: block;
+  text-wrap: balance;
 }
 
 @keyframes hl-enter {

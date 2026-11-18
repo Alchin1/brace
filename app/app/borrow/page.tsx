@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { WalletShell } from "@/components/borrow/WalletShell";
 import { LineHead } from "@/components/v2/LineHead";
 
-export const metadata: Metadata = { title: "Try a borrow" };
+export const metadata: Metadata = { title: "Try a borrow", alternates: { canonical: "/borrow" } };
 
 export default function BorrowPage() {
   return (

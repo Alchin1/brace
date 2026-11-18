@@ -32,7 +32,7 @@
 3. Back in Phantom, check that the SOL shows up while Testnet mode is on.
 
 **Live check (5 minutes before recording)**
-- Open `https://brace-ivory.vercel.app`. All five rows (SOL, BTC, ETH, XRP, ZEC) should say updated seconds ago.
+- Open `https://braced.vercel.app`. All five rows (SOL, BTC, ETH, XRP, ZEC) should say updated seconds ago.
 - If the board says "Live limits are not loading", tap **Try again**. If it is still down after 5 minutes, see docs/runbook.md before recording.
 
 **Rehearse once** with the stopwatch, reading the lines out loud. Then record for real.
@@ -56,13 +56,13 @@ Total: 2:30. Times are cumulative.
 ### Clip A (Chrome)
 
 **Shot 1 · 0:00 to 0:12 (12 s) · the board**
-- URL: `https://brace-ivory.vercel.app`
+- URL: `https://braced.vercel.app`
 - On screen: the risk board, five assets, "updated seconds ago".
 - Tap: nothing. Let it sit.
 - Voiceover: "lending apps set borrowing limits by vote, and those limits rarely change. brace sets them every minute, from gemini prediction markets, onchain on solana."
 
 **Shot 2 · 0:12 to 0:32 (20 s) · one asset**
-- Tap: the **SOL** row. URL becomes `https://brace-ivory.vercel.app/asset/SOL`.
+- Tap: the **SOL** row. URL becomes `https://braced.vercel.app/asset/SOL`.
 - On screen: the Gemini ladder chart, implied volatility, max LTV.
 - Tap: scroll slowly down to the ladder chart.
 - Voiceover: "gemini traders bet on where sol will be at expiry. those odds form a curve. brace fits that curve onchain, gets the implied volatility, and turns it into a borrowing limit. more volatility, lower limit."
@@ -76,7 +76,7 @@ Total: 2:30. Times are cumulative.
 ### Clip B (Phantom in-app browser)
 
 **Shot 4 · 0:42 to 1:00 (18 s) · connect and deposit**
-- Open Phantom, tap the browser tab, go to `https://brace-ivory.vercel.app/borrow`.
+- Open Phantom, tap the browser tab, go to `https://braced.vercel.app/borrow`.
 - Tap: **Connect**, choose Phantom, approve.
 - New wallet: tap **Open position** and approve, then **Deposit** 0.5 SOL and approve. Reused wallet: skip deposit, the position is already there.
 - Voiceover: "now a real borrow, on a phone, with phantom on devnet. i deposit half a sol as collateral. the program prices it with the same live feed."
@@ -104,7 +104,7 @@ Total: 2:30. Times are cumulative.
 - Voiceover: "here is the rejected transaction on solana explorer. the program log shows the ltv i asked for and the live limit. anyone can check this."
 
 **Shot 8 · 1:58 to 2:18 (20 s) · history and accuracy**
-- URL: `https://brace-ivory.vercel.app/history`
+- URL: `https://braced.vercel.app/history`
 - On screen: the limit chart over time and the list of blocked and allowed borrows.
 - Voiceover, part 1 (about 10 s): "quicknode streams records every limit update and every borrow, including the failed ones. that history is how we check the oracle."
 - Voiceover, part 2 (about 10 s), pick one:
@@ -137,7 +137,7 @@ Total: 2:30. Times are cumulative.
 1. Open the YouTube app, signed in to the account you want on the submission.
 2. Tap **+** (Create), then **Upload a video**, then pick the joined 2:30 video.
 3. Title: `Brace: prediction-market risk limits for Solana lending (UBC 2026)`.
-4. Description: paste the live app link `https://brace-ivory.vercel.app` and the repo link `https://github.com/ohjay-official/brace`.
+4. Description: paste the live app link `https://braced.vercel.app` and the repo link `https://github.com/ohjay-official/brace`.
 5. Visibility: **Unlisted**. Unlisted still lets anyone with the link watch it, which judges need. Do not pick Private.
 6. Audience: **No, it's not made for kids**.
 7. Upload. Wait until YouTube finishes processing HD (a few minutes).
