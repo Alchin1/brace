@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import {
   explorerAddress,
   feedEffectiveLtvBps,
@@ -13,8 +14,24 @@ import {
 } from "@/lib/brace";
 import { horizonLabel, pct1 } from "@/lib/chart";
 import { BoardNotice, useBoard } from "./BoardProvider";
-import { ASSET_NAMES, Gauge, StatusCell } from "./Instruments";
+import { ASSET_NAMES, StatusCell } from "./Instruments";
 import { LadderChart, expiryLabel } from "./LadderChart";
+import { AssetGlyph } from "./ui/AssetGlyph";
+import { CopyField } from "./ui/CopyField";
+import { BlockMeter, LimitRing } from "./ui/Meters";
+import { RollingNumber } from "./ui/RollingNumber";
+import { SparkProvider, Sparkline, useSpark } from "./ui/Sparks";
+
+const WINDOW = 6 * 3600;
+
+/** Change of the limit over the sparkline window, from real rows only. */
+function SparkDelta({ symbol }: { symbol: Symbol }) {
+  const { series } = useSpark(symbol);
+  if (!series || series.length < 2) return <span className="delta">--</span>;
+  const d = (series[series.length - 1].v - series[0].v) * 100;
+  const s = `${d > 0 ? "+" : d < 0 ? "−" : ""}${Math.abs(d).toFixed(1)} pts`;
+  return <span className={`delta ${d > 0 ? "up" : d < 0 ? "down" : ""}`}>{s}</span>;
+}
 
 export function AssetDetail({ symbol }: { symbol: Symbol }) {
   const { state, now } = useBoard();
@@ -27,36 +44,57 @@ export function AssetDetail({ symbol }: { symbol: Symbol }) {
   const cap = p?.govMaxLtvBps ?? 7500;
   const liq = p?.liqThresholdBps ?? 8000;
 
-  const rows: [string, string][] =
+  const groups: { h: string; rows: [string, string][] }[] =
     ok && f && p
       ? [
-          ["Spot price", `$${fromE6(f.spotE6)}`],
-          ["Implied median at expiry", `$${fromE6(f.medianE6)}`],
-          ["Implied volatility (annual)", pct1(Number(f.sigmaBps))],
-          [`${horizonLabel(p.horizonSecs)} move (1σ)`, `${(Number(f.horizonMoveE6) / 1e4).toFixed(2)}%`],
-          ["Quotes used", `${f.points}`],
-          ["Gemini market", f.ticker || "none"],
-          ["Expires", `${expiryLabel(Number(f.expiryTs), now)}, ${untilTime(Number(f.expiryTs) - now)}`],
-          ["Last confident update", f.hasValid ? relTime(now - Number(f.lastValidAt)) : "never"],
-          ["Max limit", pct1(f.maxLtvBps)],
-          ["Limit right now", limit === null ? "--" : pct1(limit)],
+          {
+            h: "Market",
+            rows: [
+              ["Spot price", `$${fromE6(f.spotE6)}`],
+              ["Implied median at expiry", `$${fromE6(f.medianE6)}`],
+              ["Gemini market", f.ticker || "none"],
+              ["Expires", `${expiryLabel(Number(f.expiryTs), now)}, ${untilTime(Number(f.expiryTs) - now)}`],
+            ],
+          },
+          {
+            h: "Oracle",
+            rows: [
+              ["Implied volatility (annual)", pct1(Number(f.sigmaBps))],
+              [`${horizonLabel(p.horizonSecs)} move (1σ)`, `${(Number(f.horizonMoveE6) / 1e4).toFixed(2)}%`],
+              ["Quotes used", `${f.points}`],
+              ["Last confident update", f.hasValid ? relTime(now - Number(f.lastValidAt)) : "never"],
+            ],
+          },
+          {
+            h: "Limits",
+            rows: [
+              ["Max limit (last confident)", pct1(f.maxLtvBps)],
+              ["Governance cap", pct1(cap)],
+              ["Liquidation threshold", pct1(liq)],
+            ],
+          },
         ]
       : [];
 
   return (
-    <div className="page">
-      <Link href="/" className="crumb text-link">
-        All assets
+    <div className="page asset-page">
+      <Link href="/" className="crumb">
+        <ArrowLeft size={16} aria-hidden /> All assets
       </Link>
       <div className="asset-top">
         <div className="asset-title">
-          <h1>{symbol}</h1>
-          <span className="name">{ASSET_NAMES[symbol]}</span>
+          <AssetGlyph sym={symbol} size={52} />
+          <div>
+            <h1>{symbol}</h1>
+            <span className="name">{ASSET_NAMES[symbol]} feed on Solana devnet</span>
+          </div>
         </div>
-        <StatusCell status={status} />
+        <span className="status-pill">
+          <StatusCell status={status} />
+        </span>
       </div>
 
-      <div style={{ marginTop: 24 }}>
+      <div className="asset-notices">
         <BoardNotice state={state} />
         {ok && !f && (
           <div className="notice" role="status">
@@ -66,53 +104,72 @@ export function AssetDetail({ symbol }: { symbol: Symbol }) {
         )}
       </div>
 
-      <div className="asset-grid">
+      <SparkProvider symbols={[symbol]} windowSecs={WINDOW} className="asset-grid">
         <LadderChart symbol={symbol} feed={f} params={p} now={now} effectiveBps={limit} />
 
-        <div>
-          <div className="card limit-panel">
-            <div className="big">
-              <span className="label">Limit right now</span>
-              <span className="v">{limit === null ? "--" : pct1(limit)}</span>
-            </div>
-            <div className="gauge-wrap">
-              <div className="gauge-head">
-                <span className="muted" style={{ left: `${cap / 100}%` }}>
-                  {cap / 100}% cap
-                </span>
+        <aside className="asset-side">
+          <div className="limit-card card-lit">
+            <LimitRing
+              limitBps={limit}
+              capBps={cap}
+              liqBps={liq}
+              size={200}
+              tone={status === "stale" ? "stale" : undefined}
+              center={<span className="ring-v big">{limit === null ? "--" : <RollingNumber value={pct1(limit)} />}</span>}
+              sub="Limit right now"
+            />
+            <div className="limit-side">
+              <div className="ls-row">
+                <span>Implied vol</span>
+                <strong>{f ? pct1(Number(f.sigmaBps)) : "--"}</strong>
               </div>
-              <Gauge limitBps={limit} capBps={cap} liqBps={liq} />
-              <div className="gauge-head" style={{ height: 16 }}>
-                <span className="muted" style={{ right: 0, top: 2, bottom: "auto", transform: "none" }}>
-                  liquidation at {liq / 100}%
-                </span>
-                <span className="muted" style={{ left: 0, top: 2, bottom: "auto", transform: "none" }}>
-                  0%
-                </span>
+              <BlockMeter valueBps={f ? Math.min(10000, (Number(f.sigmaBps) / 15000) * 10000) : null} capBps={null} label="Implied volatility on a 0 to 150% scale" />
+              <div className="ls-row">
+                <span>Limit, last 6 hours</span>
+                <SparkDelta symbol={symbol} />
               </div>
+              <Sparkline sym={symbol} width={240} height={52} className="ls-spark" />
             </div>
+            {symbol === "SOL" ? (
+              <Link href="/borrow" className="btn btn-primary btn-block">
+                Try a borrow against SOL <ArrowRight size={16} aria-hidden />
+              </Link>
+            ) : (
+              <p className="ls-note">
+                The demo pool takes SOL as collateral.{" "}
+                <Link href="/asset/SOL" className="text-link">
+                  Open the SOL feed
+                </Link>
+              </p>
+            )}
           </div>
+        </aside>
+      </SparkProvider>
 
-          {rows.length > 0 && (
-            <dl className="facts">
-              {rows.map(([k, v]) => (
-                <div key={k}>
-                  <dt>{k}</dt>
-                  <dd>{v}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-
-          <p className="account-link">
-            Feed account{" "}
-            <a href={explorerAddress(pda)} target="_blank" rel="noopener noreferrer" className="text-link mono">
-              {pda.slice(0, 4)}…{pda.slice(-4)}
-            </a>{" "}
-            on Solana Explorer
-          </p>
+      {groups.length > 0 && (
+        <div className="fact-groups" data-reveal>
+          {groups.map((g) => (
+            <section key={g.h} className="fact-group card-lit" aria-label={g.h}>
+              <h2>{g.h}</h2>
+              <dl className="facts">
+                {g.rows.map(([k, v]) => (
+                  <div key={k}>
+                    <dt>{k}</dt>
+                    <dd>{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+          <section className="fact-group card-lit" aria-label="Program">
+            <h2>Program</h2>
+            <CopyField label="Feed account" value={pda} display={`${pda.slice(0, 6)}…${pda.slice(-6)}`} />
+            <a href={explorerAddress(pda)} target="_blank" rel="noopener noreferrer" className="proof-link">
+              Feed account on Solana Explorer <ArrowUpRight size={14} aria-hidden />
+            </a>
+          </section>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -4,8 +4,8 @@ import "./globals.css";
 import { BoardProvider } from "@/components/BoardProvider";
 import { Footer, Header } from "@/components/Chrome";
 
-const sans = Geist({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-geist-sans", display: "swap" });
-const mono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-geist-mono", display: "swap" });
+const sans = Geist({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800", "900"], variable: "--font-geist-sans", display: "swap" });
+const mono = Geist_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-geist-mono", display: "swap" });
 
 const SITE_URL = "https://brace-ivory.vercel.app";
 const TITLE = "Brace: lending limits from live prediction-market odds";
@@ -37,8 +37,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#141415" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
   ],
 };
 
@@ -54,7 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <BoardProvider>
           <Header />
-          <main>
+          <main id="main">
             <div className="wrap">{children}</div>
           </main>
           <Footer />

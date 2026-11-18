@@ -7,6 +7,7 @@ import {
   chartDomain,
   curvePoints,
   fmtPrice,
+  horizonLabel,
   limitPath,
   niceTicks,
   pct1,
@@ -107,6 +108,7 @@ export function LadderChart({
   let body: React.ReactNode = null;
   let aria = `${symbol} chart, reading devnet`;
   let formula: string | null = null;
+  let readout: { move: string; moveLabel: string; haircut: string; limit: string; note: string | null } | null = null;
 
   if (feed && params) {
     const spot = Number(feed.spotE6) / 1e6;
@@ -141,7 +143,9 @@ export function LadderChart({
       <>
         {band && (
           <g>
-            <rect x={xs(band.lo)} y={m.t} width={Math.max(0, xs(band.hi) - xs(band.lo))} height={ph} fill="var(--raised)" />
+            <rect className="sigma-band" x={xs(band.lo)} y={m.t} width={Math.max(0, xs(band.hi) - xs(band.lo))} height={ph} />
+            <line className="sigma-edge" x1={xs(band.lo)} x2={xs(band.lo)} y1={m.t} y2={m.t + ph} />
+            <line className="sigma-edge" x1={xs(band.hi)} x2={xs(band.hi)} y1={m.t} y2={m.t + ph} />
             <text x={xs(band.lo) + 6} y={m.t + ph - 8} fontSize="11" fill="var(--text-3)">
               −{kLabel}σ {fmtPrice(band.lo, true)}
             </text>
@@ -170,8 +174,18 @@ export function LadderChart({
         <text x={spotLabelX} y={m.t - 10} fontSize="11" fill="var(--text-2)" textAnchor="middle">
           {spotLabel}
         </text>
+        {curve && <path className="fit-area" d={`${curve}L${xs(dom.max).toFixed(1)},${ys(0).toFixed(1)}L${xs(dom.min).toFixed(1)},${ys(0).toFixed(1)}Z`} />}
         {curve && (
-          <path d={curve} fill="none" stroke="var(--accent)" strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+          <path
+            className="fit-line"
+            d={curve}
+            pathLength={1}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
         )}
         {quotes.map((q) => {
           const x = xs(q.strike);
@@ -196,7 +210,7 @@ export function LadderChart({
       (band ? ` 24 hour ${kLabel} sigma range ${fmtPrice(band.lo)} to ${fmtPrice(band.hi)}.` : "");
 
     if (feed.hasValid && effectiveBps !== null) {
-      formula = limitPath({
+      const lp = limitPath({
         horizonMoveE6: Number(feed.horizonMoveE6),
         kX100: params.kX100,
         liqBps: params.liqThresholdBps,
@@ -205,35 +219,87 @@ export function LadderChart({
         horizonSecs: params.horizonSecs,
         maxLtvBps: feed.maxLtvBps,
         effectiveBps,
-      }).text;
+      });
+      formula = lp.text;
+      const term = (params.kX100 * Number(feed.horizonMoveE6)) / 1e8;
+      readout = {
+        moveLabel: `${kLabel}σ ${horizonLabel(params.horizonSecs)} move`,
+        move: `±${(term * 100).toFixed(1)}%`,
+        haircut: `${pct1(params.liqThresholdBps)} × (1 − ${term.toFixed(3)})`,
+        limit: pct1(effectiveBps),
+        note:
+          lp.rawBps > params.govMaxLtvBps
+            ? `Capped at ${pct1(params.govMaxLtvBps)}`
+            : lp.rawBps < params.absFloorLtvBps
+              ? `Floored at ${pct1(params.absFloorLtvBps)}`
+              : effectiveBps < feed.maxLtvBps
+                ? "Stale data, stepping down"
+                : null,
+      };
     } else if (effectiveBps !== null) {
       formula = `No confident fit yet → limit held at ${pct1(effectiveBps)}`;
     }
   }
 
+  const live = feed && feed.hasValid;
   return (
-    <figure className="card chart-card" style={{ margin: 0 }}>
-      <figcaption className="chart-head">
-        <span>{title}</span>
+    <figure className="bay chart-card ladder" style={{ margin: 0 }}>
+      <figcaption className="bay-bar">
+        <span className="bay-title">
+          <span className={`dot ${feed ? (live ? "live" : "stale") : "none"}`} aria-hidden />
+          <span>{title}</span>
+        </span>
+        <span className="bay-legend" aria-hidden>
+          <span className="lg-dot" /> Gemini quotes
+          <span className="lg-line" /> Onchain fit
+          <span className="lg-band" /> {params ? `±${params.kX100 / 100}σ ${horizonLabel(params.horizonSecs)}` : "Expected range"}
+        </span>
       </figcaption>
       <div className="chart-box" ref={boxRef}>
         <svg className="chart-svg" width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={aria}>
           {body ?? (
             <>
+              <rect className="skel-band" x={m.l + pw * 0.3} y={m.t} width={pw * 0.4} height={ph} />
               <line x1={m.l} x2={m.l + pw} y1={m.t + ph} y2={m.t + ph} stroke="var(--hair)" />
               <text x={m.l + pw / 2} y={m.t + ph / 2} fontSize="12" fill="var(--text-3)" textAnchor="middle">
-                {boardDown ? "Devnet is not answering. Trying again." : "Reading devnet"}
+                {boardDown ? "Devnet is not answering. Trying again." : "Reading Solana devnet"}
               </text>
             </>
           )}
         </svg>
       </div>
-      {formula && <p className="formula">{formula}</p>}
-      <p className="caption">
-        {feed && ladder.state === "unavailable"
-          ? "Live quotes unavailable, showing the onchain fit"
-          : "Dots: live Gemini quotes. Line: the fit Brace computes onchain."}
-      </p>
+      {readout ? (
+        <div className="readout">
+          <div>
+            <span>{readout.moveLabel}</span>
+            <strong>{readout.move}</strong>
+          </div>
+          <div>
+            <span>Haircut on liquidation line</span>
+            <strong className="mono-s">{readout.haircut}</strong>
+          </div>
+          <div className="is-limit">
+            <span>{symbol} limit now</span>
+            <strong>{readout.limit}</strong>
+            {readout.note && <em>{readout.note}</em>}
+          </div>
+        </div>
+      ) : (
+        formula && <p className="formula">{formula}</p>
+      )}
+      <div className="bay-foot">
+        <p className="caption">
+          {feed && ladder.state === "unavailable"
+            ? "Live quotes unavailable, showing the onchain fit"
+            : "Dots: live Gemini quotes. Line: the fit Brace computes onchain."}
+        </p>
+        {readout && formula && (
+          <details className="math">
+            <summary>Show the math</summary>
+            <p className="formula">{formula}</p>
+          </details>
+        )}
+      </div>
     </figure>
   );
 }

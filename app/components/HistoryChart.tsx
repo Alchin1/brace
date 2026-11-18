@@ -36,9 +36,10 @@ export function HistoryChart({
   status: "loading" | "error" | "ok";
 }) {
   const [boxRef, width] = useWidth<HTMLDivElement>(640);
+  const [hover, setHover] = useState<number | null>(null);
   const compact = width < 520;
-  const H = compact ? 236 : 280;
-  const m = { l: compact ? 42 : 52, r: compact ? 44 : 52, t: 16, b: 28 };
+  const H = compact ? 248 : 300;
+  const m = { l: compact ? 48 : 60, r: compact ? 50 : 60, t: 22, b: 32 };
   const pw = Math.max(10, width - m.l - m.r);
   const ph = H - m.t - m.b;
   const x = (ts: number) => m.l + ((ts - t0) / Math.max(1, t1 - t0)) * pw;
@@ -137,20 +138,53 @@ export function HistoryChart({
             </text>
           </g>
         ))}
+        {limitLine && points.length > 1 && (
+          <path
+            className="hist-area"
+            d={`${limitLine}L${x(points[points.length - 1].ts).toFixed(1)},${(m.t + ph).toFixed(1)}L${x(points[0].ts).toFixed(1)},${(m.t + ph).toFixed(1)}Z`}
+          />
+        )}
         {volLine && (
           <path d={volLine} fill="none" stroke="var(--text-2)" strokeWidth="1.25" strokeLinejoin="round" strokeLinecap="round" />
         )}
         {limitLine && (
-          <path d={limitLine} fill="none" stroke="var(--accent)" strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+          <path className="fit-line" pathLength={1} d={limitLine} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        )}
+        {hover !== null && points[hover] && (
+          <g className="xhair" aria-hidden>
+            <line x1={x(points[hover].ts)} x2={x(points[hover].ts)} y1={m.t} y2={m.t + ph} />
+            <circle cx={x(points[hover].ts)} cy={yLtv(points[hover].effectiveLtv)} r="4" className="xh-dot" />
+            <circle cx={x(points[hover].ts)} cy={yVol(points[hover].sigmaAnnual)} r="3" className="xh-dot2" />
+          </g>
         )}
       </>
     );
   }
 
+  const pick = (clientX: number, el: Element) => {
+    if (status !== "ok" || !points.length) return;
+    const r = el.getBoundingClientRect();
+    const px = clientX - r.left;
+    let best = 0;
+    let bd = Infinity;
+    points.forEach((p, i) => {
+      const d = Math.abs(x(p.ts) - px);
+      if (d < bd) {
+        bd = d;
+        best = i;
+      }
+    });
+    setHover(best);
+  };
+  const hp = hover !== null ? points[hover] : null;
+
   return (
-    <figure className="card chart-card" style={{ margin: 0 }}>
-      <figcaption className="chart-head">
-        <span>SOL: effective limit and implied volatility, last 24 hours</span>
+    <figure className="bay chart-card hist" style={{ margin: 0 }}>
+      <figcaption className="bay-bar">
+        <span className="bay-title">
+          <span className={`dot ${status === "ok" && points.length ? "live" : "none"}`} aria-hidden />
+          <span>SOL: effective limit and implied volatility, last 24 hours</span>
+        </span>
         <span className="legend">
           <span className="legend-item">
             <span className="legend-line accent" aria-hidden />
@@ -163,11 +197,28 @@ export function HistoryChart({
         </span>
       </figcaption>
       <div className="chart-box" ref={boxRef}>
-        <svg className="chart-svg" width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={aria}>
+        <svg
+          className="chart-svg"
+          width={width}
+          height={H}
+          viewBox={`0 0 ${width} ${H}`}
+          role="img"
+          aria-label={aria}
+          onPointerMove={(e) => pick(e.clientX, e.currentTarget)}
+          onPointerDown={(e) => pick(e.clientX, e.currentTarget)}
+          onPointerLeave={() => setHover(null)}
+        >
           {body}
         </svg>
+        {hp && (
+          <div className="xh-read" aria-hidden style={{ left: Math.min(Math.max(x(hp.ts), 90), width - 90) }}>
+            <span>{formatUtcTime(hp.ts)}</span>
+            <strong>limit {pctFromRatio(hp.effectiveLtv)}</strong>
+            <span>vol {pctFromRatio(hp.sigmaAnnual)}</span>
+          </div>
+        )}
       </div>
-      <p className="caption">Times in UTC. The accent line is the effective borrow limit. The neutral line is implied volatility.</p>
+      <div className="bay-foot"><p className="caption">Times in UTC. Accent line: effective borrow limit. Neutral line: implied volatility. Hover or tap the chart to read a point.</p></div>
     </figure>
   );
 }
