@@ -62,3 +62,40 @@ describe("D1Store SQL (SQLite) for bounded /history and /actions", () => {
     expect((await actionsResponse(store, undefined))[0].limit).toBe(2);
   });
 });
+
+describe("D1Store SQL that keeps D1 rows read and written low", () => {
+  test("latestPostTsByAsset returns MAX(ts) per asset and skips assets with no posts", async () => {
+    const store = new D1Store(fakeD1());
+    for (const [ts, asset] of [[100, "SOL"], [300, "SOL"], [200, "BTC"], [250, "ZEC"]] as const) {
+      await store.upsertPost(post(ts, asset));
+    }
+    expect(await store.latestPostTsByAsset()).toEqual({ SOL: 300, BTC: 200, ZEC: 250 });
+  });
+
+  test("saveRelayerRun writes the run row and only asset rows that changed, in one batch", async () => {
+    const db = fakeD1();
+    const batches: number[] = [];
+    const orig = db.batch.bind(db);
+    (db as { batch: unknown }).batch = async (stmts: unknown[]) => {
+      batches.push(stmts.length);
+      return orig(stmts as never);
+    };
+    const store = new D1Store(db);
+    const first = {
+      lastRun: "2026-11-18T06:00:00.000Z",
+      lastError: null,
+      assets: [
+        { asset: "BTC", lastSig: "B1", lastAt: 1, lastError: null },
+        { asset: "SOL", lastSig: "S1", lastAt: 1, lastError: null },
+      ],
+    };
+    await store.saveRelayerRun(first);
+    const prev = await store.loadRelayerRun();
+    expect(prev).toEqual(first);
+    const next = { ...first, lastRun: "2026-11-18T06:01:00.000Z", assets: [{ ...first.assets[0], lastSig: "B2", lastAt: 61 }, first.assets[1]] };
+    await store.saveRelayerRun(next, prev);
+    expect(batches).toEqual([3, 2]);
+    expect(await store.loadRelayerRun()).toEqual(next);
+  });
+});
+

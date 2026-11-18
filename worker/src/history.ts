@@ -71,6 +71,10 @@ export const MAX_ROWS = 10_000;
  * Rows are always oldest first. With since, the oldest `limit` rows at or after since (page forward
  * by passing the last ts as the next since). Without since, the newest `limit` rows.
  */
+export function windowRows<T>(rows: T[], since: number | undefined, limit: number): T[] {
+  return window(rows, since, limit);
+}
+
 function window<T>(rows: T[], since: number | undefined, limit: number): T[] {
   if (rows.length <= limit) return rows;
   return since !== undefined ? rows.slice(0, limit) : rows.slice(rows.length - limit);

@@ -5,7 +5,7 @@ import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 import { describe, expect, test } from "vitest";
 import { PENDING_EXPIRE_SECS } from "../src/confirm.ts";
-import { persistRun, runOnce } from "../src/index.ts";
+import { persistRun, resetMemoryState, runOnce } from "../src/index.ts";
 import { MemoryStore } from "../src/store.ts";
 import type { Env } from "../src/index.ts";
 
@@ -251,3 +251,54 @@ describe("runOnce RPC minimization", () => {
     }
   });
 });
+
+/** MemoryStore whose every D1-style call fails, like the Cloudflare D1 free daily limit. */
+class DownStore extends MemoryStore {
+  calls = 0;
+  constructor() {
+    super();
+    for (const m of ["listPendingSigs", "addPendingSigs", "removePendingSigs", "loadRelayerRun", "saveRelayerRun"]) {
+      (this as unknown as Record<string, unknown>)[m] = async () => {
+        this.calls++;
+        throw new Error("D1_ERROR: Exceeded maximum daily rows read limit");
+      };
+    }
+  }
+}
+
+describe("runOnce with D1 down", () => {
+  test("still posts onchain, holds pending sigs in memory, and confirms them next tick", async () => {
+    resetMemoryState();
+    const store = new DownStore();
+    const env = makeEnv(store);
+    const rpcCalls: RpcCall[] = [];
+    const first = await runOnce(env, NOW, makeFetch({ rpcCalls }));
+    expect(first.filter((r) => r.sig).length).toBe(5);
+    expect(first.filter((r) => r.error)).toEqual([]);
+    expect(rpcCalls.filter((c) => c.method === "sendTransaction").length).toBeGreaterThan(0);
+    await expect(persistRun(store, first, NOW, null)).resolves.toBeUndefined();
+    expect(store.calls).toBeGreaterThan(0);
+
+    // Next tick: one sig still unconfirmed, the rest confirmed; pending comes from memory.
+    const sigs = [...new Set(first.filter((r) => r.sig).map((r) => r.sig!))];
+    const stuck = sigs[0];
+    const stuckAssets = first.filter((r) => r.sig === stuck).map((r) => r.asset).sort();
+    const rpc2: RpcCall[] = [];
+    const second = await runOnce(
+      env,
+      NOW + 60,
+      makeFetch({
+        rpcCalls: rpc2,
+        onStatuses: (asked) =>
+          asked.map((s) => (s === stuck ? null : { slot: 1, confirmations: 1, err: null, confirmationStatus: "confirmed" })),
+      }),
+    );
+    const status = rpc2.filter((c) => c.method === "getSignatureStatuses");
+    expect(status).toHaveLength(1);
+    expect((status[0].params as [string[]])[0].slice().sort()).toEqual(sigs.slice().sort());
+    expect(second.filter((r) => r.skipped === "pending confirmation").map((r) => r.asset).sort()).toEqual(stuckAssets);
+    expect(second.filter((r) => r.sig).length).toBe(5 - stuckAssets.length);
+    resetMemoryState();
+  });
+});
+
