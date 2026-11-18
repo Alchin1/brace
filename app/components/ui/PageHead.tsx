@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { InstrumentField } from "./InstrumentField";
 
-/** Top of an inner page: crumb, kicker, display title, lede, over a quiet grid. */
+/** Top of an inner page: crumb, a mono kicker on a ruled line, the title, a lede. */
 export function PageHead({ kicker, title, lede, crumb = true }: { kicker: string; title: React.ReactNode; lede?: React.ReactNode; crumb?: boolean }) {
   return (
     <header className="phead">
-      <InstrumentField variant="quiet" />
       {crumb && (
         <Link href="/" className="crumb">
-          <ArrowLeft size={16} aria-hidden /> All assets
+          <ArrowLeft size={16} aria-hidden /> Board
         </Link>
       )}
       <p className="phead-k">{kicker}</p>

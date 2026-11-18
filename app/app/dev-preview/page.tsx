@@ -14,7 +14,7 @@ export default async function DevPreview({ searchParams }: { searchParams: Promi
   if (process.env.NODE_ENV === "production") notFound();
   const { state } = await searchParams;
   return (
-    <div className="page borrow-page">
+    <div className="page wrap borrow-page">
       <PreviewClient state={state ?? "connected"} />
     </div>
   );

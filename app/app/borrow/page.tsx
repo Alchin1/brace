@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Try a borrow" };
 
 export default function BorrowPage() {
   return (
-    <div className="page borrow-page">
+    <div className="page wrap borrow-page">
       <PageHead kicker="Borrow on devnet" title="Try a borrow" />
       <WalletShell />
     </div>

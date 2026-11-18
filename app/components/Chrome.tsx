@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight, Moon, Sun } from "lucide-react";
-import { PROGRAM_ID, REPO_URL, explorerAddress } from "@/lib/brace";
+import { PROGRAM_ID, REPO_URL, explorerAddress, feedEffectiveLtvBps, feedStatus } from "@/lib/brace";
+import { pct1 } from "@/lib/chart";
 import { RELAYER_URL } from "@/lib/history";
+import { useBoard } from "./BoardProvider";
 import { BraceMark } from "./ui/BraceMark";
-import { NavReading, ScrollProgress, StickyBar } from "./ui/Chrome2";
 import { CopyField } from "./ui/CopyField";
 import { MiniBoard } from "./ui/MiniBoard";
 
@@ -32,7 +33,7 @@ function useTheme() {
   return [theme, set] as const;
 }
 
-/** Two-segment theme switch with a sliding indicator. Arrow keys move between segments. */
+/** Paper or night shift. Two radios; arrow keys move between them. */
 function ThemeSwitch({ id }: { id: string }) {
   const [theme, set] = useTheme();
   const onKey = (e: React.KeyboardEvent) => {
@@ -42,28 +43,43 @@ function ThemeSwitch({ id }: { id: string }) {
     }
   };
   return (
-    <div className={`theme-sw${theme === "dark" ? " is-dark" : ""}`} role="radiogroup" aria-label="Theme" id={id} onKeyDown={onKey}>
-      <span className="theme-sw-ind" aria-hidden />
+    <div className="theme-sw" role="radiogroup" aria-label="Theme" id={id} onKeyDown={onKey}>
       <button type="button" role="radio" aria-checked={theme === "light"} tabIndex={theme === "dark" ? -1 : 0} onClick={() => set("light")} aria-label="Light theme">
-        <Sun size={16} strokeWidth={1.75} aria-hidden />
+        <Sun size={16} strokeWidth={1.5} aria-hidden />
       </button>
       <button type="button" role="radio" aria-checked={theme === "dark"} tabIndex={theme === "dark" ? 0 : -1} onClick={() => set("dark")} aria-label="Dark theme">
-        <Moon size={16} strokeWidth={1.75} aria-hidden />
+        <Moon size={16} strokeWidth={1.5} aria-hidden />
       </button>
     </div>
   );
 }
 
 const LINKS = [
-  { href: "/", label: "Board", note: "Live limits for every asset" },
-  { href: "/borrow", label: "Borrow", note: "Try a borrow against devnet SOL" },
-  { href: "/history", label: "History", note: "24 hours of limits and rejects" },
-  { href: "/about", label: "About", note: "How the oracle works" },
+  { href: "/", label: "Board", note: "Five live limits and the ladder behind them" },
+  { href: "/borrow", label: "Borrow", note: "Borrow test USD against devnet SOL" },
+  { href: "/history", label: "History", note: "24 hours of limits, blocks and borrows" },
+  { href: "/about", label: "About", note: "How the oracle works, and its limits" },
 ];
 
 function isActive(path: string, href: string) {
   if (href === "/") return path === "/" || path.startsWith("/asset");
   return path === href;
+}
+
+/** SOL live limit in the header. Not a live region; the stage carries the announcement. */
+function NavReading() {
+  const { state, now } = useBoard();
+  const ok = state?.kind === "ok" ? state : null;
+  const f = ok?.feeds.SOL ?? null;
+  const status = ok ? feedStatus(f, ok.config.params, now) : null;
+  const limit = ok && f ? feedEffectiveLtvBps(f, ok.config.params, now) : null;
+  return (
+    <Link href="/asset/SOL" className="nav-reading" aria-label={`SOL live limit ${limit === null ? "not read yet" : pct1(limit)}`}>
+      <span className={`dot ${status ?? "none"}`} aria-hidden />
+      <span aria-hidden>SOL</span>
+      <strong aria-hidden>{limit === null ? "--" : pct1(limit)}</strong>
+    </Link>
+  );
 }
 
 function MenuSheet({ path }: { path: string }) {
@@ -123,15 +139,7 @@ function MenuSheet({ path }: { path: string }) {
         <span aria-hidden />
         <span aria-hidden />
       </button>
-      <div
-        ref={sheet}
-        id="site-menu"
-        className={`sheet${open ? " is-open" : ""}`}
-        hidden={!open}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) close(false);
-        }}
-      >
+      <div ref={sheet} id="site-menu" className={`sheet${open ? " is-open" : ""}`} hidden={!open}>
         <div className="sheet-in">
           <nav aria-label="Menu">
             <ol className="sheet-links">
@@ -141,7 +149,6 @@ function MenuSheet({ path }: { path: string }) {
                     <span className="sl-n">0{i + 1}</span>
                     <span className="sl-t">{l.label}</span>
                     <span className="sl-d">{l.note}</span>
-                    <ArrowRight size={18} className="sl-a" aria-hidden />
                   </Link>
                 </li>
               ))}
@@ -152,13 +159,10 @@ function MenuSheet({ path }: { path: string }) {
             <MiniBoard onNavigate={() => close(false)} />
           </div>
           <div className="sheet-foot">
-            <CopyField label="Program id" value={PROGRAM_ID.toBase58()} display={`${PROGRAM_ID.toBase58().slice(0, 6)}…${PROGRAM_ID.toBase58().slice(-6)}`} />
-            <div className="sheet-row">
-              <ThemeSwitch id="theme-menu" />
-              <Link href="/borrow" className="btn btn-primary" onClick={() => close(false)}>
-                Try a borrow <ArrowRight size={16} aria-hidden />
-              </Link>
-            </div>
+            <ThemeSwitch id="theme-menu" />
+            <Link href="/borrow" className="btn btn-primary" onClick={() => close(false)}>
+              Try a borrow <ArrowRight size={16} aria-hidden />
+            </Link>
           </div>
         </div>
       </div>
@@ -181,9 +185,9 @@ export function Header() {
         Skip to content
       </a>
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
-        <div className="wrap">
+        <div className="wrap hd">
           <Link href="/" className="brand" aria-label="Brace, devnet, home">
-            <BraceMark size={26} />
+            <BraceMark size={24} />
             <span className="brand-word">Brace</span>
             <span className="net">devnet</span>
           </Link>
@@ -202,77 +206,43 @@ export function Header() {
             <MenuSheet path={path} />
           </div>
         </div>
-        <ScrollProgress />
       </header>
-      <StickyBar />
     </>
   );
 }
 
 export function Footer() {
-  const path = usePathname();
-  const showMark = path === "/" || path === "/about";
   const id = PROGRAM_ID.toBase58();
   return (
     <footer className="site-footer">
-      <div className="wrap">
-        <div className="foot-top">
-          <div className="foot-brand">
-            <Link href="/" className="brand" aria-label="Brace, home">
-              <BraceMark size={26} />
-              <span className="brand-word">Brace</span>
-            </Link>
-            <p>Lending limits from live prediction-market odds. Devnet build for UBC 2026. Test funds only.</p>
-            <CopyField label="Program id" value={id} display={`${id.slice(0, 8)}…${id.slice(-8)}`} />
-          </div>
-          <nav className="foot-cols" aria-label="Footer">
-            <div>
-              <p className="foot-h">Product</p>
-              <ul>
-                {LINKS.map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href}>{l.label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="foot-h">Proof</p>
-              <ul>
-                <li>
-                  <a href={explorerAddress(id)} target="_blank" rel="noopener noreferrer">
-                    Program on Explorer <ArrowUpRight size={13} aria-hidden />
-                  </a>
-                </li>
-                <li>
-                  <a href={`${RELAYER_URL}/health`} target="_blank" rel="noopener noreferrer">
-                    Relayer health <ArrowUpRight size={13} aria-hidden />
-                  </a>
-                </li>
-                <li>
-                  <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-                    GitHub <ArrowUpRight size={13} aria-hidden />
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <p className="foot-h">Built on</p>
-              <ul className="foot-plain">
-                <li>Gemini prediction markets</li>
-                <li>Solana devnet</li>
-                <li>QuickNode Streams</li>
-                <li>Cloudflare Workers</li>
-              </ul>
-            </div>
-          </nav>
+      <div className="wrap ft">
+        <div className="ft-brand">
+          <Link href="/" className="brand" aria-label="Brace, home">
+            <BraceMark size={24} />
+            <span className="brand-word">Brace</span>
+          </Link>
+          <p>Lending limits from live prediction market odds. A devnet build for UBC 2026. Test funds only.</p>
         </div>
-        {showMark && (
-          <div className="wordmark" aria-hidden>
-            <span>Brace</span>
-            <BraceMark size={120} className="wm-mark" />
-          </div>
-        )}
+        <nav className="ft-links" aria-label="Footer">
+          {LINKS.map((l) => (
+            <Link key={l.href} href={l.href}>
+              {l.label}
+            </Link>
+          ))}
+          <a href={explorerAddress(id)} target="_blank" rel="noopener noreferrer">
+            Explorer <ArrowUpRight size={14} aria-hidden />
+          </a>
+          <a href={`${RELAYER_URL}/health`} target="_blank" rel="noopener noreferrer">
+            Relayer <ArrowUpRight size={14} aria-hidden />
+          </a>
+          <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub <ArrowUpRight size={14} aria-hidden />
+          </a>
+        </nav>
+        <div className="ft-id">
+          <CopyField label="Program id" value={id} display={`${id.slice(0, 8)}…${id.slice(-8)}`} />
+          <p className="ft-built">Gemini prediction markets, Solana devnet, QuickNode Streams, Cloudflare Workers</p>
+        </div>
       </div>
     </footer>
   );

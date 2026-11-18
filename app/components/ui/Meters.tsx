@@ -1,12 +1,12 @@
 import { pct1 } from "@/lib/chart";
+import { BraceGauge } from "../v2/BraceGauge";
 
 const clamp = (v: number) => Math.min(100, Math.max(0, v));
 
 /**
- * Ring gauge. The accent arc fills to the live limit; ticks mark the
- * governance cap and the liquidation threshold. An optional needle marks a
- * position LTV, and the arc past the limit turns into a hatched red zone when
- * the needle is over it.
+ * The position meter. Same props as the old ring, drawn the Brace way: the
+ * figure on top, then the brace gauge with the live limit, cap, liquidation and
+ * an optional position mark. Over the limit, the overshoot is hatched red.
  */
 export function LimitRing({
   limitBps,
@@ -29,75 +29,27 @@ export function LimitRing({
   sub?: React.ReactNode;
   tone?: "ok" | "over" | "stale";
 }) {
-  // 270 degree arc, open at the bottom.
-  const r = 42;
-  const C = 2 * Math.PI * r;
-  const arc = C * 0.75;
-  const at = (bps: number) => (clamp(bps / 100) / 100) * arc;
-  const angle = (bps: number) => 135 + (clamp(bps / 100) / 100) * 270;
-  const tick = (bps: number, len: number) => {
-    const a = (angle(bps) * Math.PI) / 180;
-    const r1 = r + 6;
-    const r2 = r + 6 + len;
-    return { x1: 50 + r1 * Math.cos(a), y1: 50 + r1 * Math.sin(a), x2: 50 + r2 * Math.cos(a), y2: 50 + r2 * Math.sin(a) };
-  };
   const over = tone === "over" || (markBps !== null && limitBps !== null && markBps > limitBps);
-  const capT = tick(capBps, 5);
-  const liqT = tick(liqBps, 5);
-  const markA = markBps !== null ? (angle(Math.min(markBps, 10000)) * Math.PI) / 180 : 0;
   const aria =
     label ??
     (limitBps === null
       ? "Live limit not read yet"
       : `Live limit ${pct1(limitBps)} on a 0 to 100% scale. Cap ${pct1(capBps)}, liquidation ${pct1(liqBps)}${markBps !== null ? `, position ${pct1(markBps)}` : ""}.`);
+  if (size < 80) {
+    return (
+      <span className={`pm-mini${over ? " is-over" : ""}`} role="img" aria-label={aria}>
+        {limitBps !== null && <i style={{ width: `${clamp(limitBps / 100)}%` }} />}
+        <b style={{ left: `${clamp(liqBps / 100)}%` }} />
+      </span>
+    );
+  }
   return (
-    <div
-      className={`ring${over ? " is-over" : ""}${tone === "stale" ? " is-stale" : ""}`}
-      style={{ width: size }}
-      role="meter"
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={limitBps === null ? undefined : Math.round(limitBps) / 100}
-      aria-label={aria}
-    >
-      <svg viewBox="0 0 100 100" width={size} height={size} aria-hidden focusable="false">
-        <circle className="ring-track" cx="50" cy="50" r={r} strokeDasharray={`${arc} ${C}`} transform="rotate(135 50 50)" />
-        {limitBps !== null && (
-          <circle
-            className="ring-fill"
-            cx="50"
-            cy="50"
-            r={r}
-            strokeDasharray={`${at(limitBps)} ${C}`}
-            transform="rotate(135 50 50)"
-          />
-        )}
-        {over && markBps !== null && limitBps !== null && (
-          <circle
-            className="ring-over"
-            cx="50"
-            cy="50"
-            r={r}
-            strokeDasharray={`0 ${at(limitBps)} ${Math.max(0, at(Math.min(markBps, 10000)) - at(limitBps))} ${C}`}
-            transform="rotate(135 50 50)"
-          />
-        )}
-        <line className="ring-cap" {...capT} />
-        <line className="ring-liq" {...liqT} />
-        {markBps !== null && (
-          <line
-            className="ring-needle"
-            x1={50 + (r - 9) * Math.cos(markA)}
-            y1={50 + (r - 9) * Math.sin(markA)}
-            x2={50 + (r + 4) * Math.cos(markA)}
-            y2={50 + (r + 4) * Math.sin(markA)}
-          />
-        )}
-      </svg>
-      <div className="ring-center">
+    <div className={`pm${over ? " is-over" : ""}${tone === "stale" ? " is-stale" : ""}`} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={limitBps === null ? undefined : Math.round(limitBps) / 100} aria-label={aria}>
+      <div className="pm-top" aria-hidden>
         {center ?? <span className="ring-v">{limitBps === null ? "--" : pct1(limitBps)}</span>}
         {sub && <span className="ring-sub">{sub}</span>}
       </div>
+      <BraceGauge limitBps={limitBps} capBps={capBps} liqBps={liqBps} markBps={markBps} tone={over ? "over" : tone === "stale" ? "stale" : undefined} decorative className="pm-gauge" />
     </div>
   );
 }
