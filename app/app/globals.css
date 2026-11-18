@@ -5645,3 +5645,224 @@ body::before {
 .closer .cl-ghost {
   visibility: hidden;
 }
+
+/* ==========================================================================
+ * Unslop pass. Quiet chrome, and the colour kept for the moments that carry
+ * data: the hero scene with the live limit, the strike ladder, the meters and
+ * the 6005 refusal. No gradient text, no coloured glows, no drifting loops.
+ * Overrides the layers above.
+ * ========================================================================== */
+
+:root {
+  --card: rgba(255, 255, 255, 0.74);
+  --glass-border: rgba(22, 18, 46, 0.08);
+  --glass-shadow: 0 1px 2px rgba(22, 18, 46, 0.05), 0 12px 32px -16px rgba(22, 18, 46, 0.16);
+  --shadow-2: 0 12px 32px -12px rgba(22, 18, 46, 0.18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --glass-border: rgba(255, 255, 255, 0.09);
+    --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --shadow-2: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  }
+}
+:root[data-theme="dark"],
+.ink {
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-2: 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+}
+
+/* The page is one calm tinted field; the scenes and bands bring the colour. */
+body::before,
+.orb {
+  display: none;
+}
+.sheet {
+  background-image: none;
+}
+
+/* Surfaces over the flat page need no blur. Panels over imagery keep it. */
+.glass,
+.card-lit,
+.bw-connect,
+.steps,
+.before,
+.cockpit,
+.recorder,
+.rules > li,
+.prooflog,
+.wsheet,
+.notice,
+.verdict,
+.recent,
+.facts-grid .spec,
+.chain ol,
+.limits-list,
+.about-body .prooflog,
+.pl-tape,
+.aswitch,
+.btn-secondary {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.ink .wsheet,
+.ink .rungs,
+.ink .verdict,
+.ink .card-lit {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+/* Solid type. The accent word stays violet, the gradient lives in the moments. */
+.pen,
+.grad-text,
+.numeral .n-c,
+.wsheet li.is-key .sh-v,
+.r-n,
+.converge .cv-b,
+.pl-tape-i b,
+.sheet-links a[aria-current="page"] .sl-t,
+.lh-pen,
+.ab-n span,
+.nf-ladder li span {
+  background: none;
+  background-image: none;
+  color: var(--accent-ink);
+  -webkit-text-fill-color: currentColor;
+}
+.display,
+.shead h2,
+.converge,
+.closer h2,
+.lh-title {
+  font-weight: 500;
+}
+.brand,
+.before h2,
+.recent h2,
+.verdict-title strong,
+.faq-q {
+  letter-spacing: 0;
+}
+
+/* Buttons: one solid accent, a colour step on hover, a small press. */
+.btn-primary,
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent);
+  box-shadow: none;
+  transform: none;
+  filter: none;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+.btn-primary {
+  transition: background-color 150ms var(--ease), transform 120ms var(--ease);
+}
+.aswitch a[aria-current="page"] {
+  background: var(--accent);
+}
+.nav-links a[aria-current="page"]::after,
+.st-probe {
+  background: var(--accent);
+}
+
+/* No glows. Live dots keep a quiet ring, bars and ticks sit flat. */
+.dot.live {
+  box-shadow: 0 0 0 3px rgba(20, 241, 149, 0.18);
+}
+.dot.stale {
+  box-shadow: 0 0 0 3px var(--stale-soft);
+}
+.stage-paper .st-chart {
+  filter: none;
+}
+.rung-bar,
+.rung-q,
+.rung-fit,
+.chain-pkt {
+  box-shadow: none;
+}
+.rules > li::before {
+  display: none;
+}
+.ch-trace.is-empty {
+  background: color-mix(in srgb, var(--ch, #9945ff) 9%, transparent);
+}
+
+/* Motion that loops for no reason stops. Live tapes and the 6005 lens stay. */
+.motion .scene-img,
+.motion .st-pen-halo {
+  animation: none;
+}
+.motion .scene-img {
+  transform: none;
+}
+.motion .nf-ladder li.is-gone i {
+  animation-iteration-count: 2;
+}
+
+/* Over the limit: what Phantom shows, said before the popup opens. */
+.step-actions .phantom-note {
+  flex-basis: 100%;
+  margin: 0;
+}
+.presign {
+  flex-basis: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--danger) 28%, transparent);
+  background: var(--danger-soft);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.presign:focus {
+  outline: none;
+}
+.presign:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.presign h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.presign ol {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+}
+.presign b,
+.presign q {
+  font-weight: 500;
+  color: var(--text);
+}
+.presign-safe {
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+.presign-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* The dark danger fill is a light coral, so its label is dark to keep 4.5:1. */
+:root[data-theme="dark"] .btn-danger,
+.ink .btn-danger {
+  color: #1c0a14;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .btn-danger {
+    color: #1c0a14;
+  }
+}

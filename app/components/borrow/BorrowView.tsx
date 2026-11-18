@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, Check, Lock, Wallet } from "lucide-react";
 import { pct1 } from "@/lib/chart";
 import type { FeedStatus } from "@/lib/brace";
@@ -164,6 +165,16 @@ export function DisconnectedView(p: DisconnectedProps) {
                 <p>On a phone, open this page in Phantom&apos;s in-app browser.</p>
               </div>
             </li>
+            <li>
+              <span className="rail-n">4</span>
+              <div>
+                <strong>What Phantom shows</strong>
+                <p>
+                  A yellow note that this domain is new, and test USD listed as Unknown. Both are normal for a devnet app Phantom has
+                  not reviewed yet.
+                </p>
+              </div>
+            </li>
           </ol>
         </section>
       </div>
@@ -205,6 +216,62 @@ function StepMark({ state, n }: { state: string; n: number }) {
     <span className={`rail-n is-${state}`} aria-hidden>
       {state === "done" ? <Check size={14} /> : state === "locked" ? <Lock size={12} /> : n}
     </span>
+  );
+}
+
+/**
+ * The over-limit path. Phantom cannot simulate a borrow the program will refuse,
+ * so it shows its strongest warning. Say exactly what comes before the popup opens.
+ */
+function OverLimitSubmit({ onBorrow, disabled }: { onBorrow: () => void; disabled: boolean }) {
+  const [primed, setPrimed] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (primed) panel.current?.focus();
+  }, [primed]);
+  if (!primed) {
+    return (
+      <>
+        <button type="button" className="btn btn-danger" onClick={() => setPrimed(true)} disabled={disabled}>
+          Submit anyway
+        </button>
+        <p className="step-note phantom-note">The program will refuse this borrow onchain. That refusal is the test.</p>
+      </>
+    );
+  }
+  return (
+    <div className="presign" ref={panel} tabIndex={-1} role="region" aria-labelledby="presign-h">
+      <h4 id="presign-h">What Phantom shows next</h4>
+      <ol>
+        <li>
+          A red <q>Failed to simulate the results of this request</q> and empty balance rows. Phantom tried this borrow first and the
+          program refused it, so there is nothing to preview.
+        </li>
+        <li>
+          Tap <b>Confirm (unsafe)</b>, the small link under Close.
+        </li>
+        <li>
+          Tick the box, then tap <b>Yes, confirm (unsafe)</b>.
+        </li>
+      </ol>
+      <p className="presign-safe">Nothing is borrowed. You pay only the devnet network fee, and the reject lands onchain with error 6005.</p>
+      <div className="presign-actions">
+        <button
+          type="button"
+          className="btn btn-danger"
+          disabled={disabled}
+          onClick={() => {
+            setPrimed(false);
+            onBorrow();
+          }}
+        >
+          Continue in Phantom
+        </button>
+        <button type="button" className="btn btn-secondary" onClick={() => setPrimed(false)}>
+          Back
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -338,9 +405,7 @@ export function ConnectedView(p: ConnectedProps) {
 
                           <div className="step-actions">
                             {p.overLimit ? (
-                              <button type="button" className="btn btn-danger" onClick={p.onBorrow} disabled={p.busy || !p.borrow.valid || !p.hasCollateral}>
-                                Submit anyway
-                              </button>
+                              <OverLimitSubmit onBorrow={p.onBorrow} disabled={p.busy || !p.borrow.valid || !p.hasCollateral} />
                             ) : (
                               <button
                                 type="button"
@@ -352,11 +417,6 @@ export function ConnectedView(p: ConnectedProps) {
                               </button>
                             )}
                           </div>
-                          {p.overLimit && (
-                            <p className="step-note phantom-note">
-                              Phantom will warn that this transaction may fail. Confirm it anyway to see the program reject it onchain.
-                            </p>
-                          )}
                         </>
                       )}
                     </div>
