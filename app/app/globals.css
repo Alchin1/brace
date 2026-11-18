@@ -5929,31 +5929,33 @@ body::before,
   }
 }
 
-/* Kill the earlier generic stage-copy entrance so it cannot fight the line reveal. */
-.motion .stage-copy > *,
-.motion .stage-copy > :nth-child(2),
-.motion .stage-copy > :nth-child(3),
-.motion .stage-copy > :nth-child(4) {
+.motion .stage-copy > .display {
   animation: none;
 }
 
+/* Out-specify the earlier .motion .stage-copy > :nth-child(n) slide-in. */
 @media (prefers-reduced-motion: no-preference) {
+  .motion .stage-copy .hl-line:first-child .hl-in,
   .stage-copy .hl-line:first-child .hl-in {
     animation:
       hl-enter 800ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both,
       enter-safe 1ms linear 3500ms forwards;
   }
+  .motion .stage-copy .hl-line:last-child .hl-in,
   .stage-copy .hl-line:last-child .hl-in {
     animation:
       hl-enter 850ms cubic-bezier(0.22, 1, 0.36, 1) 440ms both,
       enter-safe 1ms linear 3500ms forwards;
   }
+  .motion .stage-copy .kick,
+  .motion .stage-copy .lede,
   .stage-copy .kick,
   .stage-copy .lede {
     animation:
       lift-in 620ms cubic-bezier(0.16, 1, 0.3, 1) 740ms both,
       enter-safe 1ms linear 3500ms forwards;
   }
+  .motion .stage-copy .actions,
   .stage-copy .actions {
     animation:
       fade-lift 560ms cubic-bezier(0.16, 1, 0.3, 1) 960ms both,
