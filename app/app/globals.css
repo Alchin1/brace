@@ -3113,6 +3113,7 @@ code,
 }
 .st-hint {
   position: absolute;
+  z-index: 3;
   left: max(var(--gutter), calc((100% - var(--wrap)) / 2 + var(--gutter)));
   top: 24px;
   font-family: var(--mono);
@@ -3559,6 +3560,13 @@ code,
 }
 
 @media (max-width: 899px) {
+  .st-hint {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 24px var(--gutter) 0;
+    align-self: flex-start;
+  }
   .cl-stage {
     justify-self: start;
     font-size: 44vw;

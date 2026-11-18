@@ -179,6 +179,11 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
           <div className="stage-copy">{children}</div>
         </div>
       )}
+      {scale.current && (
+        <span className="st-hint" aria-hidden>
+          {phone ? "Tap the paper to read any strike" : "Move across the paper to read any strike"}
+        </span>
+      )}
       <div className="stage-paper" ref={ref} aria-hidden>
         <svg className="st-under" width={W} height={H} viewBox={`0 0 ${W} ${H}`} focusable="false">
           {under}
@@ -189,7 +194,6 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
         <div ref={probeRef} className="st-probe" style={{ top, height: ph }}>
           <span ref={readRef} className="st-probe-read" />
         </div>
-        {scale.current && <span className="st-hint">{phone ? "Tap the paper to read any strike" : "Move across the paper to read any strike"}</span>}
       </div>
       <div className="wrap stage-fig-w">
         <div className="stage-figure">
