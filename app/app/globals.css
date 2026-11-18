@@ -5600,3 +5600,41 @@ body::before {
       #0c0a22;
   }
 }
+
+/* 6005 resting state: the whole code always reads. Outlines carry a soft fill,
+   the lens shows it solid, and the error name sits above the word, never on it. */
+.closer .cl-out {
+  color: rgba(255, 255, 255, 0.16);
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.72);
+}
+.closer .cl-out.cl-in {
+  color: #0c0a22;
+  -webkit-text-stroke: 0;
+}
+.closer .cl-tag {
+  position: static;
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(12, 10, 34, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  opacity: 1;
+}
+.closer .cl-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.closer .cl-fill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.closer .cl-ghost {
+  visibility: hidden;
+}

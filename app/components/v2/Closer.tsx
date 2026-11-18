@@ -72,12 +72,13 @@ export function Closer() {
           </Link>
         </div>
         <div className="cl-stage" ref={box} aria-hidden>
+          <span className="cl-tag">RiskTightened</span>
           <span className="cl-out">{WORD}</span>
           <span className="cl-lens" ref={lens}>
             <span className="cl-fill" ref={fill}>
+              <span className="cl-tag cl-ghost">RiskTightened</span>
               <span className="cl-out cl-in">{WORD}</span>
             </span>
-            <span className="cl-tag">RiskTightened</span>
           </span>
         </div>
       </div>
