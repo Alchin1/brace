@@ -152,10 +152,24 @@ function MenuSheet({ path }: { path: string }) {
 
   useEffect(() => {
     if (!open) return;
+    const onPtr = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (sheet.current?.contains(t) || btn.current?.contains(t)) return;
+      close();
+    };
+    document.addEventListener("pointerdown", onPtr);
+    return () => document.removeEventListener("pointerdown", onPtr);
+  }, [open, close]);
+
+  useEffect(() => {
+    if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const first = sheet.current?.querySelector<HTMLElement>("a, button");
-    first?.focus();
+    const focusFirst = () => {
+      const first = sheet.current?.querySelector<HTMLElement>("a[href], button");
+      first?.focus();
+    };
+    const focusId = window.setTimeout(focusFirst, 50);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -176,6 +190,7 @@ function MenuSheet({ path }: { path: string }) {
     };
     document.addEventListener("keydown", onKey);
     return () => {
+      window.clearTimeout(focusId);
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", onKey);
     };
@@ -195,7 +210,13 @@ function MenuSheet({ path }: { path: string }) {
         <span aria-hidden />
         <span aria-hidden />
       </button>
-      <div ref={sheet} id="site-menu" className={`sheet${open ? " is-open" : ""}`} hidden={!open}>
+      <div
+        ref={sheet}
+        id="site-menu"
+        className={`sheet${open ? " is-open" : ""}`}
+        aria-hidden={!open}
+        inert={!open}
+      >
         <div className="sheet-in">
           <nav aria-label="Menu">
             <ol className="sheet-links">

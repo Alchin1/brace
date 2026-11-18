@@ -14,7 +14,14 @@ export default function Home() {
       <Stage symbol="SOL" id="hero-title">
         <p className="kick">Solana devnet, UBC 2026</p>
         <h1 id="hero-title" className="display">
-          Lending limits that move <span className="pen">before</span> the market does
+          <span className="hl-line">
+            <span className="hl-in">Lending limits that move</span>
+          </span>{" "}
+          <span className="hl-line">
+            <span className="hl-in">
+              <span className="pen">before</span> the market does
+            </span>
+          </span>
         </h1>
         <p className="lede">
           Brace reads the strike ladders on Gemini&apos;s prediction markets, fits implied volatility onchain on Solana, and sets how much
