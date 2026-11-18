@@ -14,7 +14,7 @@ import { TxRail, VerdictPanel } from "../ui/Verdict";
  * BorrowApp computes every value and passes the real handlers in.
  */
 
-export type Done = { id: number; label: string; ok: boolean; message: string; sig: string | null; at: number };
+export type Done = { id: number; label: string; ok: boolean; message: string; sig: string | null; at: number; blocked?: { ltvBps: number; limitBps: number } | null };
 export type Active = { id: number; label: string; phase: "wallet" | "sending"; sig: string | null };
 
 type Feed = {
@@ -369,7 +369,7 @@ export function ConnectedView(p: ConnectedProps) {
           {p.active ? (
             <TxRail phase={p.active.phase} label={p.active.label} sig={p.active.sig} explorerHref={p.active.sig ? p.explorerTx(p.active.sig) : null} />
           ) : p.last ? (
-            <VerdictPanel ok={p.last.ok} label={p.last.label} message={p.last.message} sig={p.last.sig} explorerHref={p.last.sig ? p.explorerTx(p.last.sig) : null} />
+            <VerdictPanel ok={p.last.ok} label={p.last.label} message={p.last.message} blocked={p.last.blocked} sig={p.last.sig} explorerHref={p.last.sig ? p.explorerTx(p.last.sig) : null} />
           ) : (
             <p className="sr-only" role="status" aria-live="polite" />
           )}

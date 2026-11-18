@@ -1,5 +1,6 @@
 import { pct1 } from "@/lib/chart";
 import { BraceGauge } from "../v2/BraceGauge";
+import { scaleLabelsCollide } from "./display";
 
 const clamp = (v: number) => Math.min(100, Math.max(0, v));
 
@@ -88,8 +89,10 @@ export function LtvMeter({
 }) {
   const p = (bps: number) => `${clamp(bps / 100)}%`;
   const over = afterBps !== null && limitBps !== null && afterBps > limitBps;
+  // Limit close to liquidation: the limit label takes its own row so the two never collide.
+  const stacked = scaleLabelsCollide(limitBps, liqBps);
   return (
-    <div className={`ltvm${over ? " is-over" : ""}`} role="img" aria-label={label}>
+    <div className={`ltvm${over ? " is-over" : ""}${stacked ? " is-stacked" : ""}`} role="img" aria-label={label}>
       <div className="ltvm-track">
         {limitBps !== null && <span className="ltvm-zone" style={{ left: p(limitBps) }} />}
         {ltvBps !== null && <span className="ltvm-now" style={{ width: p(ltvBps) }} />}

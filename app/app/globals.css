@@ -2185,6 +2185,13 @@ code,
 .ltvm-scale .liq {
   transform: translateX(-10%);
 }
+/* Limit near liquidation: drop the limit label to a second row so it never collides with liq. */
+.ltvm.is-stacked .ltvm-scale {
+  height: 40px;
+}
+.ltvm.is-stacked .ltvm-scale .lim {
+  top: 20px;
+}
 .overwarn {
   padding: 12px 16px;
   border-radius: var(--r-ctl);

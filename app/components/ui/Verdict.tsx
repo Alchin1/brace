@@ -1,5 +1,6 @@
 import { ArrowUpRight, Check, Loader2, ShieldAlert, ShieldX, Wallet } from "lucide-react";
 import { BraceMark } from "./BraceMark";
+import { comparePcts } from "./display";
 
 export type VerdictKind = "blocked" | "paused" | "failed" | "cancelled" | "success";
 
@@ -35,6 +36,7 @@ export function VerdictPanel({
   explorerHref,
   ltv,
   limit,
+  blocked,
 }: {
   ok: boolean;
   label: string;
@@ -43,12 +45,17 @@ export function VerdictPanel({
   explorerHref: string | null;
   ltv?: string | null;
   limit?: string | null;
+  /** The program's own bps from its "brace blocked" log, when the app read it. */
+  blocked?: { ltvBps: number; limitBps: number } | null;
 }) {
   const kind = verdictOf(ok, message);
   // failureMessage() writes "...would put you at 72.1% against a live limit of 69.5%."
   const parsed = /at ([\d.]+%) against a live limit of ([\d.]+%)/.exec(message);
-  ltv = ltv ?? parsed?.[1] ?? null;
-  limit = limit ?? parsed?.[2] ?? null;
+  const exact = blocked ? comparePcts(blocked.ltvBps, blocked.limitBps) : null;
+  // Keep the sentence in step with the pair below when it needs the extra decimal.
+  if (exact && parsed) message = message.replace(parsed[0], `at ${exact.ltv} against a live limit of ${exact.limit}`);
+  ltv = ltv ?? exact?.ltv ?? parsed?.[1] ?? null;
+  limit = limit ?? exact?.limit ?? parsed?.[2] ?? null;
   const Icon = kind === "success" ? Check : kind === "blocked" ? ShieldX : kind === "paused" ? ShieldAlert : kind === "cancelled" ? Wallet : ShieldAlert;
   return (
     <div className={`verdict v-${kind}`} role={kind === "success" || kind === "cancelled" ? "status" : "alert"}>

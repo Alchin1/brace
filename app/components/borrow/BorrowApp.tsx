@@ -15,12 +15,14 @@ import {
   isWalletRejection,
   ltvBps,
   maxBorrow,
+  parseBlocked,
   parseUnits,
   priceFresh,
   type Position,
 } from "@/lib/position";
 import { borrowIxs, depositIx, openPositionIx, positionPda, repayIx, usdAta, withdrawIx } from "@/lib/tx";
 import { useBoard } from "../BoardProvider";
+import { borrowTextAfter } from "../ui/display";
 import { ConnectedView, DisconnectedView } from "./BorrowView";
 
 const SOL_DECIMALS = 9;
@@ -38,7 +40,7 @@ const usd = (base: bigint) => formatUnits(base, USD_DECIMALS, 2);
 
 type Account = { position: Position | null; lamports: bigint; usdBase: bigint };
 type Phase = "wallet" | "sending";
-type Done = { id: number; label: string; ok: boolean; message: string; sig: string | null; at: number };
+type Done = { id: number; label: string; ok: boolean; message: string; sig: string | null; at: number; blocked?: { ltvBps: number; limitBps: number } | null };
 type Active = { id: number; label: string; phase: Phase; sig: string | null };
 
 function useAccount(owner: PublicKey | null) {
@@ -157,7 +159,7 @@ export function BorrowApp({ walletError, clearWalletError }: { walletError: Wall
   );
 
   const run = useCallback(
-    async (label: string, ixs: TransactionInstruction[], opts: { skipPreflight: boolean; success: string }) => {
+    async (label: string, ixs: TransactionInstruction[], opts: { skipPreflight: boolean; success: string; onDone?: (ok: boolean) => void }) => {
       if (!publicKey || active) return;
       const id = nextId.current++;
       let sig: string | null = null;
@@ -171,17 +173,18 @@ export function BorrowApp({ walletError, clearWalletError }: { walletError: Wall
         const conf = await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
         if (conf.value.err) {
           const logs = await fetchLogs(sig);
-          done = { id, label, ok: false, message: failureMessage(conf.value.err, logs), sig, at: Date.now() };
+          done = { id, label, ok: false, message: failureMessage(conf.value.err, logs), sig, at: Date.now(), blocked: parseBlocked(logs) };
         } else {
           done = { id, label, ok: true, message: opts.success, sig, at: Date.now() };
         }
       } catch (e) {
         const logs = (e as { logs?: string[] }).logs ?? (sig ? await fetchLogs(sig) : null);
-        done = { id, label, ok: false, message: failureMessage(e, logs), sig, at: Date.now() };
+        done = { id, label, ok: false, message: failureMessage(e, logs), sig, at: Date.now(), blocked: parseBlocked(logs) };
       }
       setActive(null);
       setLast(done);
       setRecent((r) => [done, ...r].slice(0, 12));
+      opts.onDone?.(done.ok);
       reload();
     },
     [publicKey, active, connection, sendTransaction, reload, fetchLogs],
@@ -206,6 +209,8 @@ export function BorrowApp({ walletError, clearWalletError }: { walletError: Wall
       // Skip preflight so a rejected borrow still lands onchain with its logs.
       skipPreflight: true,
       success: `Borrowed ${usd(borrowBase)} test USD${afterLtv !== null ? `. LTV now ${pct1(afterLtv)}` : ""}.`,
+      // A confirmed borrow clears the amount, so the old figure is not re-checked against the new debt.
+      onDone: (ok) => setBorrowText((t) => borrowTextAfter(ok, t)),
     });
   const repayBase = parseUnits(repayText, USD_DECIMALS);
   const doRepay = () =>
