@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ArrowUpRight, Check, ShieldX } from "lucide-react";
+import { BraceMark } from "@/components/ui/BraceMark";
+import { CopyField } from "@/components/ui/CopyField";
 import { HistoryChart } from "@/components/HistoryChart";
 import { fetchWithTimeout, friendlyNetError } from "@/lib/net";
 import {
@@ -68,37 +71,70 @@ export function HistoryView() {
   const t1 = bounds?.t1 ?? Math.floor(Date.now() / 1000);
   const chartStatus = status === "error" && !points.length ? "error" : status === "loading" && !points.length ? "loading" : "ok";
   const formatted = actions.map(formatBorrowAction);
+  const [filter, setFilter] = useState<"all" | "ok" | "blocked">("all");
+  const shown = formatted.filter((r) => (filter === "all" ? true : filter === "ok" ? r.ok : !r.ok));
+  const nBlocked = formatted.filter((r) => !r.ok).length;
+  const nOk = formatted.length - nBlocked;
+  const rawUrl = `${RELAYER_URL}/history?asset=SOL`;
 
   return (
     <div className="history">
       <HistoryChart points={points} t0={t0} t1={t1} status={chartStatus} />
 
       <section className="history-actions" aria-labelledby="borrows-h">
-        <h2 id="borrows-h">Blocked and allowed borrows</h2>
+        <div className="ha-head">
+          <h2 id="borrows-h">Blocked and allowed borrows</h2>
+          {formatted.length > 0 && (
+            <div className="seg" role="radiogroup" aria-label="Filter borrows">
+              {(
+                [
+                  ["all", `All ${formatted.length}`],
+                  ["blocked", `Blocked ${nBlocked}`],
+                  ["ok", `Accepted ${nOk}`],
+                ] as const
+              ).map(([k, l]) => (
+                <button key={k} type="button" role="radio" aria-checked={filter === k} className={filter === k ? "is-on" : ""} onClick={() => setFilter(k)}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {status === "loading" && !formatted.length ? (
-          <p className="muted">Reading Streams.</p>
+          <div className="skel-list" role="status" aria-busy="true">
+            <span className="sr-only">Reading QuickNode Streams.</span>
+            <span className="skel skel-row" />
+            <span className="skel skel-row" />
+            <span className="skel skel-row" />
+          </div>
         ) : status === "error" && !formatted.length ? (
-          <p className="muted">
-            Could not load borrows. {error ?? ""} This page tries again every 30 seconds.
-          </p>
+          <div className="notice is-error" role="status">
+            <strong>Could not load borrows</strong>
+            <span className="muted">{error ?? ""} This page tries again every 30 seconds.</span>
+          </div>
         ) : formatted.length === 0 ? (
-          <p className="muted">
-            No borrows have been recorded yet. Blocked and allowed borrows will appear here once someone uses the
-            demo pool.
-          </p>
+          <div className="notice" role="status">
+            <strong>No borrows recorded yet</strong>
+            <span className="muted">Blocked and allowed borrows will appear here once someone uses the demo pool.</span>
+          </div>
         ) : (
-          <ul className="recent-list">
-            {formatted.map((row) => (
-              <li key={`${row.href}-${row.ts}`}>
-                <span className={`dot ${row.ok ? "live" : "none"}`} aria-hidden />
-                <div className="recent-body">
-                  <span className="recent-label">
-                    {row.label}: {row.detail}
+          <ul className="actions-list">
+            {shown.map((row) => (
+              <li key={`${row.href}-${row.ts}`} className={`arow2 ${row.ok ? "is-ok" : "is-blocked"}`}>
+                <span className="ar-icon" aria-hidden>
+                  {row.ok ? <Check size={16} /> : <BraceMark size={20} />}
+                </span>
+                <div className="ar-body">
+                  <span className="ar-label">
+                    {row.ok ? "Accepted" : "Blocked by the program"}
+                    {!row.ok && <ShieldX size={14} aria-hidden className="ar-shield" />}
                   </span>
-                  <span className="recent-msg">{row.when}</span>
+                  <span className="ar-detail">{row.detail}</span>
+                  <span className="ar-when">{row.when}</span>
                 </div>
-                <a className="text-link recent-link" href={row.href} target="_blank" rel="noopener noreferrer">
-                  Explorer
+                <a className="ar-link" href={row.href} target="_blank" rel="noopener noreferrer">
+                  Explorer <ArrowUpRight size={14} aria-hidden />
+                  <span className="sr-only"> for this {row.ok ? "accepted" : "blocked"} borrow</span>
                 </a>
               </li>
             ))}
@@ -106,12 +142,16 @@ export function HistoryView() {
         )}
       </section>
 
-      <p className="history-source">
-        Recorded by QuickNode Streams from every Brace transaction on devnet.{" "}
-        <a className="text-link u" href={`${RELAYER_URL}/history?asset=SOL`} target="_blank" rel="noopener noreferrer">
-          Raw /history
+      <section className="history-source card-lit" aria-label="Source">
+        <div>
+          <strong>Source</strong>
+          <p>Recorded by QuickNode Streams from every Brace transaction on devnet, served by the Brace relayer.</p>
+        </div>
+        <CopyField label="Endpoint" value={rawUrl} display="/history?asset=SOL" />
+        <a className="proof-link" href={rawUrl} target="_blank" rel="noopener noreferrer">
+          Open raw data <ArrowUpRight size={14} aria-hidden />
         </a>
-      </p>
+      </section>
     </div>
   );
 }
