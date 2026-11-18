@@ -41,6 +41,10 @@ def calculate_hit_rate(records, horizon):
             pending += 1
             continue
 
+        if horizon == 86400:
+            if timestamps[index] - target > 600:
+                continue
+        
         actual = records[index]["spot"]
         spot = record["spot"]
 
