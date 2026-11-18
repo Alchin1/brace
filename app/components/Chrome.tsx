@@ -10,7 +10,6 @@ import { RELAYER_URL } from "@/lib/history";
 import { useBoard } from "./BoardProvider";
 import { BraceMark } from "./ui/BraceMark";
 import { CopyField } from "./ui/CopyField";
-import { MiniBoard } from "./ui/MiniBoard";
 
 type Theme = "light" | "dark";
 
@@ -44,24 +43,81 @@ function ThemeSwitch({ id }: { id: string }) {
   };
   return (
     <div className="theme-sw" role="radiogroup" aria-label="Theme" id={id} onKeyDown={onKey}>
-      <button type="button" role="radio" aria-checked={theme === "light"} tabIndex={theme === "dark" ? -1 : 0} onClick={() => set("light")} aria-label="Light theme">
+      <button
+        type="button"
+        role="radio"
+        aria-checked={theme === "light"}
+        tabIndex={theme === "dark" ? -1 : 0}
+        onClick={() => set("light")}
+        aria-label="Light theme"
+      >
         <Sun size={16} strokeWidth={1.5} aria-hidden />
       </button>
-      <button type="button" role="radio" aria-checked={theme === "dark"} tabIndex={theme === "dark" ? 0 : -1} onClick={() => set("dark")} aria-label="Dark theme">
+      <button
+        type="button"
+        role="radio"
+        aria-checked={theme === "dark"}
+        tabIndex={theme === "dark" ? 0 : -1}
+        onClick={() => set("dark")}
+        aria-label="Dark theme"
+      >
         <Moon size={16} strokeWidth={1.5} aria-hidden />
       </button>
     </div>
   );
 }
 
+/** Pages, for the footer. */
 const LINKS = [
-  { href: "/", label: "Board", note: "Five live limits and the ladder behind them" },
-  { href: "/borrow", label: "Borrow", note: "Borrow test USD against devnet SOL" },
-  { href: "/history", label: "History", note: "24 hours of limits, blocks and borrows" },
-  { href: "/about", label: "About", note: "How the oracle works, and its limits" },
+  { href: "/", label: "Board" },
+  { href: "/borrow", label: "Borrow" },
+  { href: "/history", label: "History" },
+  { href: "/about", label: "About" },
 ];
 
+/** Every section and page, for the top nav and the menu sheet. */
+const NAV = [
+  {
+    href: "/about",
+    label: "How it works",
+    note: "The oracle, the math and its limits",
+    top: true,
+  },
+  {
+    href: "/#ladder",
+    label: "Live ladder",
+    note: "The Gemini strikes behind the SOL limit",
+    top: true,
+  },
+  {
+    href: "/#proof",
+    label: "Proof log",
+    note: "Each relayer post, on Solana Explorer",
+    top: true,
+  },
+  {
+    href: "/#faq",
+    label: "FAQ",
+    note: "Short answers to the usual questions",
+    top: true,
+  },
+  {
+    href: "/history",
+    label: "History",
+    note: "24 hours of limits, blocks and borrows",
+    top: false,
+  },
+  {
+    href: "/borrow",
+    label: "Borrow",
+    note: "Borrow test USD against devnet SOL",
+    top: true,
+  },
+];
+const DOCS_URL = `${REPO_URL}/tree/main/docs`;
+
 function isActive(path: string, href: string) {
+  if (href.includes("#")) return false;
   if (href === "/") return path === "/" || path.startsWith("/asset");
   return path === href;
 }
@@ -143,7 +199,7 @@ function MenuSheet({ path }: { path: string }) {
         <div className="sheet-in">
           <nav aria-label="Menu">
             <ol className="sheet-links">
-              {LINKS.map((l, i) => (
+              {NAV.map((l, i) => (
                 <li key={l.href} style={{ ["--i" as string]: i }}>
                   <Link href={l.href} aria-current={isActive(path, l.href) ? "page" : undefined} onClick={() => close(false)}>
                     <span className="sl-n">0{i + 1}</span>
@@ -153,13 +209,34 @@ function MenuSheet({ path }: { path: string }) {
                 </li>
               ))}
             </ol>
+            <ul className="sheet-ext">
+              <li>
+                <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+                  GitHub <ArrowUpRight size={16} aria-hidden />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+              <li>
+                <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
+                  Docs <ArrowUpRight size={16} aria-hidden />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+              <li>
+                <a href={explorerAddress(PROGRAM_ID.toBase58())} target="_blank" rel="noopener noreferrer">
+                  Explorer <ArrowUpRight size={16} aria-hidden />
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+            </ul>
           </nav>
-          <div className="sheet-board">
-            <p className="sheet-k">Live limits</p>
-            <MiniBoard onNavigate={() => close(false)} />
-          </div>
           <div className="sheet-foot">
-            <ThemeSwitch id="theme-menu" />
+            <div className="sheet-theme">
+              <span className="sheet-k" id="theme-menu-label">
+                Theme
+              </span>
+              <ThemeSwitch id="theme-menu" />
+            </div>
             <Link href="/borrow" className="btn btn-primary" onClick={() => close(false)}>
               Try a borrow <ArrowRight size={16} aria-hidden />
             </Link>
@@ -192,11 +269,15 @@ export function Header() {
             <span className="net">devnet</span>
           </Link>
           <nav className="nav-links" aria-label="Main">
-            {LINKS.map((l) => (
+            {NAV.filter((l) => l.top).map((l) => (
               <Link key={l.href} href={l.href} aria-current={isActive(path, l.href) ? "page" : undefined}>
                 {l.label}
               </Link>
             ))}
+            <a href={REPO_URL} target="_blank" rel="noopener noreferrer" className="nav-ext">
+              GitHub <ArrowUpRight size={14} aria-hidden />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
           </nav>
           <div className="nav-right">
             <NavReading />

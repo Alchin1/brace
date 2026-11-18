@@ -26,13 +26,18 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
   const ladder = useLadder(m.feed?.ticker || null);
   const [ref, W] = useWidth<HTMLDivElement>(520);
   const compact = W < 460;
-  const H = compact ? 190 : 230;
-  const top = 18;
-  const bottom = compact ? 18 : 30;
+  const H = compact ? 200 : 250;
+  const top = 22;
+  const bottom = 30;
   const ph = H - top - bottom;
 
   // The probe: what the onchain fit says about any strike under the pointer.
-  const scale = useRef<{ min: number; max: number; median: number; sT: number } | null>(null);
+  const scale = useRef<{
+    min: number;
+    max: number;
+    median: number;
+    sT: number;
+  } | null>(null);
   const probeRef = useRef<HTMLDivElement>(null);
   const dotRef = useRef<SVGGElement>(null);
   const readRef = useRef<HTMLSpanElement>(null);
@@ -67,10 +72,16 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
 
   if (m.feed && m.params && m.spot !== null && m.median !== null) {
     const quotes = ladder.quotes;
-    const dom = chartDomain({ median: m.median, sT: m.sT, spot: m.spot, band: m.band, strikes: quotes.map((q) => q.strike) });
+    const dom = chartDomain({
+      median: m.median,
+      sT: m.sT,
+      spot: m.spot,
+      band: m.band,
+      strikes: quotes.map((q) => q.strike),
+    });
     const xs = (v: number) => ((v - dom.min) / (dom.max - dom.min)) * W;
     const ys = (p: number) => top + (1 - p) * ph;
-    const xt = niceTicks(dom.min, dom.max, compact ? 3 : 5).filter((v) => xs(v) > 28 && xs(v) < W - 28);
+    const xt = niceTicks(dom.min, dom.max, compact ? 3 : 5).filter((v) => xs(v) > Math.max(36, W * 0.1) && xs(v) < W - Math.max(36, W * 0.1));
     const pts = m.median > 0 && m.sT > 0 ? curvePoints(m.median, m.sT, dom.min, dom.max, 140) : null;
     const curve = pts ? pts.map((p, i) => `${i ? "L" : "M"}${xs(p.x).toFixed(1)},${ys(p.y).toFixed(1)}`).join("") : null;
     const area = curve ? `${curve}L${W},${top + ph}L0,${top + ph}Z` : null;
@@ -81,9 +92,9 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
       <svg className="st-chart" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden focusable="false">
         <defs>
           <linearGradient id={`g${uid}`} x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="var(--c-violet)" />
+            <stop offset="0" stopColor="#9945FF" />
             <stop offset="0.55" stopColor="var(--c-cyan)" />
-            <stop offset="1" stopColor="var(--c-green)" />
+            <stop offset="1" stopColor="#14F195" />
           </linearGradient>
           <linearGradient id={`a${uid}`} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0" stopColor="var(--c-violet)" stopOpacity="0.34" />
@@ -94,18 +105,18 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
           </clipPath>
         </defs>
         <line x1={0} x2={W} y1={top + ph} y2={top + ph} className="st-base" />
-        <text x={W - 2} y={top - 6} textAnchor="end" className="st-lbl">
+        <text x={W - Math.max(24, W * 0.1)} y={top - 8} textAnchor="end" className="st-lbl">
           chance it ends above
         </text>
-        {!compact &&
-          xt.map((v) => (
-            <text key={v} x={xs(v)} y={top + ph + 20} textAnchor="middle" className="st-lbl">
-              {tick(v)}
-            </text>
-          ))}
+        {xt.map((v) => (
+          <text key={v} x={xs(v)} y={top + ph + 20} textAnchor="middle" className="st-lbl">
+            {tick(v)}
+          </text>
+        ))}
         <line x1={sx} x2={sx} y1={top} y2={top + ph} className="st-spot" />
         <g clipPath={`url(#c${uid})`}>
           {area && <path d={area} fill={`url(#a${uid})`} />}
+          {curve && <path d={curve} className="st-glow" stroke={`url(#g${uid})`} />}
           {curve && <path d={curve} className="st-curve" stroke={`url(#g${uid})`} />}
         </g>
         {quotes.map((q, i) => {
@@ -147,59 +158,63 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
       </div>
       <div className={`wrap stage-grid${children ? "" : " is-solo"}`}>
         {children && <div className="stage-copy">{children}</div>}
-        <div
-          className="stage-card glass"
-          ref={cardRef}
-          onPointerMove={(e) => {
-            const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
-            if (e.pointerType === "mouse" && paper) probe(e.clientX, e.clientY, paper);
-          }}
-          onPointerDown={(e) => {
-            const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
-            if (e.pointerType !== "mouse" && paper) probe(e.clientX, e.clientY, paper);
-          }}
-          onPointerLeave={(e) => {
-            if (e.pointerType === "mouse") hideProbe();
-          }}
-        >
-          <p className="sf-k">
-            <span>{symbol} borrow limit, live</span>
-            <StatusCell status={m.down ? null : m.status} />
-          </p>
-          <p className="numeral" aria-label={m.limit === null ? `${symbol} limit not read yet` : `${symbol} limit ${pct1(m.limit)}`}>
-            <span className="n-v" aria-hidden>
-              {(m.limit === null ? "--.-" : figure(m.limit)).split("").map((c, i) => (
-                <span key={`${i}${c}`} className="n-c" style={{ "--i": i } as React.CSSProperties}>
-                  {c}
-                </span>
-              ))}
-            </span>
-            <span className="n-p">%</span>
-          </p>
-          <BraceGauge limitBps={m.limit} capBps={m.cap} liqBps={m.liq} tone={stale ? "stale" : undefined} />
-          <p className="sf-meta">
-            {m.down
-              ? "Solana devnet is not answering. Trying again every 15 seconds."
-              : m.loading
-                ? "Reading the feed from Solana devnet"
-                : m.feed
-                  ? [
-                      m.ageText ? `fit ${m.ageText}` : null,
-                      `implied vol ${pct1(Number(m.feed.sigmaBps))}`,
-                      m.limit !== null ? `buffer ${((m.liq - m.limit) / 100).toFixed(1)} pts` : null,
-                    ]
-                      .filter(Boolean)
-                      .join("  ·  ")
-                  : `No ${symbol} feed on devnet yet`}
-          </p>
-          <div className="stage-paper" ref={ref} aria-hidden style={{ height: chart ? H : 0 }}>
-            {chart}
-            <div ref={probeRef} className="st-probe" style={{ top, height: ph }}>
-              <span ref={readRef} className="st-probe-read" />
-            </div>
+        <div className="stage-data">
+          <div className="stage-read">
+            <p className="sf-k">
+              <span>{symbol} borrow limit, live</span>
+              <StatusCell status={m.down ? null : m.status} />
+            </p>
+            <p className="numeral" aria-label={m.limit === null ? `${symbol} limit not read yet` : `${symbol} limit ${pct1(m.limit)}`}>
+              <span className="n-v" aria-hidden>
+                {(m.limit === null ? "--.-" : figure(m.limit)).split("").map((c, i) => (
+                  <span key={`${i}${c}`} className="n-c" style={{ "--i": i } as React.CSSProperties}>
+                    {c}
+                  </span>
+                ))}
+              </span>
+              <span className="n-p">%</span>
+            </p>
+            <BraceGauge limitBps={m.limit} capBps={m.cap} liqBps={m.liq} tone={stale ? "stale" : undefined} />
+            <p className="sf-meta">
+              {m.down
+                ? "Solana devnet is not answering. Trying again every 15 seconds."
+                : m.loading
+                  ? "Reading the feed from Solana devnet"
+                  : m.feed
+                    ? [
+                        m.ageText ? `fit ${m.ageText}` : null,
+                        `implied vol ${pct1(Number(m.feed.sigmaBps))}`,
+                        m.limit !== null ? `buffer ${((m.liq - m.limit) / 100).toFixed(1)} pts` : null,
+                      ]
+                        .filter(Boolean)
+                        .join("  ·  ")
+                    : `No ${symbol} feed on devnet yet`}
+            </p>
           </div>
-          {chart && scale.current && <p className="st-hint">{compact ? "Tap the curve to read any strike" : "Point at the curve to read any strike"}</p>}
-          {note && <p className="sf-note">{note}</p>}
+          <div
+            className="stage-chart"
+            ref={cardRef}
+            onPointerMove={(e) => {
+              const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
+              if (e.pointerType === "mouse" && paper) probe(e.clientX, e.clientY, paper);
+            }}
+            onPointerDown={(e) => {
+              const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
+              if (e.pointerType !== "mouse" && paper) probe(e.clientX, e.clientY, paper);
+            }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === "mouse") hideProbe();
+            }}
+          >
+            <div className="stage-paper" ref={ref} aria-hidden style={{ height: chart ? H : 0 }}>
+              {chart}
+              <div ref={probeRef} className="st-probe" style={{ top, height: ph }}>
+                <span ref={readRef} className="st-probe-read" />
+              </div>
+            </div>
+            {chart && scale.current && <p className="st-hint">{compact ? "Tap the curve to read any strike" : "Point at the curve to read any strike"}</p>}
+            {note && <p className="sf-note">{note}</p>}
+          </div>
         </div>
       </div>
     </section>

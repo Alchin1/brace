@@ -1,3 +1,4 @@
+import { Faq } from "@/components/v2/Faq";
 import Link from "next/link";
 import { ArrowDown, ArrowRight } from "lucide-react";
 import { Closer } from "@/components/v2/Closer";
@@ -89,13 +90,23 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="band" aria-labelledby="proof-title" data-scene>
+      <section className="band" aria-labelledby="proof-title" id="proof" data-scene>
         <div className="wrap">
           <header className="shead">
             <p className="shead-k">Proof</p>
             <h2 id="proof-title">Every number has a transaction behind it</h2>
           </header>
           <ProofLog />
+        </div>
+      </section>
+
+      <section className="band faq-band" aria-labelledby="faq-title" id="faq" data-scene>
+        <div className="wrap">
+          <header className="shead">
+            <p className="shead-k">FAQ</p>
+            <h2 id="faq-title">Questions people ask first</h2>
+          </header>
+          <Faq />
         </div>
       </section>
 
