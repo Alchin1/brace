@@ -3,7 +3,7 @@
 **For judges:** Open the [live risk board](https://braced.vercel.app) (no wallet). Then try a borrow above SOL's limit and watch Solana reject it. A verified over-limit attempt is [this rejected transaction](https://explorer.solana.com/tx/59uvMm48LV248sXSnvTV9wb8ZpVZmB8Q3ffiAsq3NU97wjU3wuSGD4EBSihWYpm1qZhrQNATA5rz5v1GWH6RVHnP?cluster=devnet). Steps are in [Try It](#try-it).
 
 <p align="center">
-  <img src="docs/images/board.png" width="260" alt="Brace risk board on a phone: the heading Lending limits that move before the market does, SOL's live implied volatility and borrow limit, and Gemini's price-or-above ladder.">
+  <img src="docs/images/board.png" width="260" alt="Brace on a phone: the live SOL borrow limit at 70.7% with implied volatility 73.8%, and the curve of the chance SOL ends above each strike with 8 live Gemini quotes on the fit stored onchain.">
 </p>
 
 **Gemini's prediction markets, turned into an onchain volatility oracle for Solana lending.**
@@ -49,7 +49,7 @@ cargo build-sbf --manifest-path programs/brace/Cargo.toml && cargo test -p brace
 
 Use `cargo build-sbf`, not `anchor build`, in a fresh clone: `anchor build` creates a new program keypair and rewrites `declare_id`, and then the program id test fails on purpose.
 
-Expected, from a fresh run on Nov 17, 2026 (Africa/Lagos): 52 Rust tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions in 50.77s, 12 oracle, 9 pool, 3 relayer-encoding); 72 app tests; 76 worker tests.
+Expected, from a fresh run on Nov 19, 2026 (Africa/Lagos): 52 Rust tests pass (15 math, 12 adversarial, 1 fuzz run of 3,000 random actions in 48.26s, 12 oracle, 9 pool, 3 relayer-encoding); 85 app tests; 95 worker tests.
 
 ## Proof It's Real
 
@@ -113,10 +113,10 @@ Sources were fetched on Nov 17, 2026. Each competitor cell is as that vendor's c
 
 | Piece | State |
 |---|---|
-| Brace program (oracle, limits, pool, liquidation) | Live on Solana devnet at the address above. 52/52 Rust tests passed on Nov 17, 2026. |
-| Relayer Worker (Cloudflare, every minute) | Live at [brace-relayer.ohjaye0.workers.dev](https://brace-relayer.ohjaye0.workers.dev/health). 76/76 worker tests passed on Nov 17, 2026. |
+| Brace program (oracle, limits, pool, liquidation) | Live on Solana devnet at the address above. 52/52 Rust tests passed on Nov 19, 2026. |
+| Relayer Worker (Cloudflare, every minute) | Live at [brace-relayer.ohjaye0.workers.dev](https://brace-relayer.ohjaye0.workers.dev/health). 95/95 worker tests passed on Nov 19, 2026. |
 | Streams sink and `/history` API | Live. `/history?asset=SOL` is oldest-first. `/actions` has recorded the verified deposit, blocked borrow and accepted borrow. Bad input gets a 400 with a plain error; responses are capped at 10,000 rows (page forward with `since`). |
-| Web app (risk board, borrow flow, history) | Live at [braced.vercel.app](https://braced.vercel.app). 72/72 app tests passed on Nov 17, 2026. |
+| Web app (risk board, borrow flow, history) | Live at [braced.vercel.app](https://braced.vercel.app). 85/85 app tests passed on Nov 19, 2026. |
 | Accuracy tracker (Python) | In progress by Alchin. No measured hit rate in this README yet. |
 
 ## How the Sponsor Tech Is Used
