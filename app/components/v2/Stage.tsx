@@ -16,35 +16,34 @@ function tick(v: number): string {
 }
 
 /**
- * The stage: one asset's live limit set as a monumental figure on recording
- * paper, with the fit the program stored onchain drawn through it and the live
- * Gemini quotes standing on the curve as rungs. Every mark comes from devnet or
- * /api/ladder; when either is missing the stage says so instead of drawing.
+ * The stage: a full-bleed colour scene with the headline over it, and one glass
+ * instrument holding the live limit, the brace, and the fit the program stored
+ * onchain with the live Gemini quotes standing on it. Every mark comes from
+ * devnet or /api/ladder; when either is missing the card says so.
  */
 export function Stage({ symbol, children, id }: { symbol: Symbol; children?: React.ReactNode; id?: string }) {
   const m = useFeedModel(symbol);
   const ladder = useLadder(m.feed?.ticker || null);
-  const [ref, W] = useWidth<HTMLDivElement>(1200);
-  const phone = W < 900;
-  const H = phone ? 340 : 680;
-  const top = phone ? 28 : 56;
-  const bottom = phone ? 32 : 40;
+  const [ref, W] = useWidth<HTMLDivElement>(520);
+  const compact = W < 460;
+  const H = compact ? 190 : 230;
+  const top = 18;
+  const bottom = compact ? 18 : 30;
   const ph = H - top - bottom;
 
   // The probe: what the onchain fit says about any strike under the pointer.
-  // Scales live in a ref so pointer moves never re-render; only transforms and one text node change.
   const scale = useRef<{ min: number; max: number; median: number; sT: number } | null>(null);
   const probeRef = useRef<HTMLDivElement>(null);
   const dotRef = useRef<SVGGElement>(null);
   const readRef = useRef<HTMLSpanElement>(null);
   const frame = useRef(0);
-  const sectionRef = useRef<HTMLElement>(null);
-  const clip = `st${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const probe = (clientX: number, clientY: number, paper: HTMLElement) => {
     const sc = scale.current;
     const box = paper.getBoundingClientRect();
     if (!sc || !probeRef.current || !dotRef.current || !readRef.current) return;
-    if (clientY < box.top || clientY > box.bottom) return hideProbe();
+    if (clientY < box.top - 8 || clientY > box.bottom + 8) return hideProbe();
     const x = Math.max(0, Math.min(box.width, clientX - box.left));
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
@@ -52,19 +51,18 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
       const p = probAbove(k, sc.median, sc.sT);
       const y = top + (1 - p) * ph;
       probeRef.current!.style.transform = `translate3d(${x}px,0,0)`;
-      probeRef.current!.classList.toggle("is-left", x > box.width - 220);
+      probeRef.current!.classList.toggle("is-left", x > box.width / 2);
       dotRef.current!.style.transform = `translate3d(${x}px,${y}px,0)`;
-      readRef.current!.textContent = `${fmtPrice(k)}, ${(p * 100).toFixed(1)}% chance above`;
-      sectionRef.current?.classList.add("is-probing");
+      readRef.current!.textContent = `${fmtPrice(k)}: ${(p * 100).toFixed(1)}% chance above`;
+      cardRef.current?.classList.add("is-probing");
     });
   };
   const hideProbe = () => {
     cancelAnimationFrame(frame.current);
-    sectionRef.current?.classList.remove("is-probing");
+    cardRef.current?.classList.remove("is-probing");
   };
 
-  let under: React.ReactNode = null;
-  let over: React.ReactNode = null;
+  let chart: React.ReactNode = null;
   let note: string | null = null;
 
   if (m.feed && m.params && m.spot !== null && m.median !== null) {
@@ -72,133 +70,100 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
     const dom = chartDomain({ median: m.median, sT: m.sT, spot: m.spot, band: m.band, strikes: quotes.map((q) => q.strike) });
     const xs = (v: number) => ((v - dom.min) / (dom.max - dom.min)) * W;
     const ys = (p: number) => top + (1 - p) * ph;
-    const xt = niceTicks(dom.min, dom.max, phone ? 4 : 8).filter((v) => xs(v) > 24 && xs(v) < W - 24);
-    const curve =
-      m.median > 0 && m.sT > 0
-        ? curvePoints(m.median, m.sT, dom.min, dom.max, 180)
-            .map((p, i) => `${i ? "L" : "M"}${xs(p.x).toFixed(1)},${ys(p.y).toFixed(1)}`)
-            .join("")
-        : null;
+    const xt = niceTicks(dom.min, dom.max, compact ? 3 : 5).filter((v) => xs(v) > 28 && xs(v) < W - 28);
+    const pts = m.median > 0 && m.sT > 0 ? curvePoints(m.median, m.sT, dom.min, dom.max, 140) : null;
+    const curve = pts ? pts.map((p, i) => `${i ? "L" : "M"}${xs(p.x).toFixed(1)},${ys(p.y).toFixed(1)}`).join("") : null;
+    const area = curve ? `${curve}L${W},${top + ph}L0,${top + ph}Z` : null;
     const penP = m.sT > 0 ? probAbove(m.spot, m.median, m.sT) : null;
     const sx = xs(m.spot);
-    scale.current = m.median > 0 && m.sT > 0 ? { min: dom.min, max: dom.max, median: m.median, sT: m.sT } : null;
-    under = (
-      <>
-        {(phone ? [0, 1] : [0, 0.5, 1]).map((p) => (
-          <g key={p}>
-            <line x1={0} x2={W} y1={ys(p)} y2={ys(p)} className="st-h" />
-            {(!phone || p === 1) && (
-              <text x={W - 4} y={ys(p) - 6} textAnchor="end" className="st-lbl">
-                {p === 1 ? "100% chance above" : `${p * 100}%`}
-              </text>
-            )}
-          </g>
-        ))}
-        {xt.map((v) => (
-          <g key={v}>
-            <line x1={xs(v)} x2={xs(v)} y1={top + ph} y2={top + ph + 6} className="st-t" />
-            {!phone && (
-              <text x={xs(v)} y={top + ph + 22} textAnchor="middle" className="st-lbl">
-                {tick(v)}
-              </text>
-            )}
-          </g>
-        ))}
-        {m.band && (
-          <g className="st-band">
-            <line x1={xs(m.band.lo)} x2={xs(m.band.lo)} y1={top} y2={top + ph} />
-            <line x1={xs(m.band.hi)} x2={xs(m.band.hi)} y1={top} y2={top + ph} />
-          </g>
-        )}
+    scale.current = pts ? { min: dom.min, max: dom.max, median: m.median, sT: m.sT } : null;
+    chart = (
+      <svg className="st-chart" width={W} height={H} viewBox={`0 0 ${W} ${H}`} aria-hidden focusable="false">
+        <defs>
+          <linearGradient id={`g${uid}`} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stopColor="var(--c-violet)" />
+            <stop offset="0.55" stopColor="var(--c-cyan)" />
+            <stop offset="1" stopColor="var(--c-green)" />
+          </linearGradient>
+          <linearGradient id={`a${uid}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="var(--c-violet)" stopOpacity="0.34" />
+            <stop offset="1" stopColor="var(--c-cyan)" stopOpacity="0" />
+          </linearGradient>
+          <clipPath id={`c${uid}`}>
+            <rect className="st-reveal" x={0} y={0} width={W} height={H} />
+          </clipPath>
+        </defs>
+        <line x1={0} x2={W} y1={top + ph} y2={top + ph} className="st-base" />
+        <text x={W - 2} y={top - 6} textAnchor="end" className="st-lbl">
+          chance it ends above
+        </text>
+        {!compact &&
+          xt.map((v) => (
+            <text key={v} x={xs(v)} y={top + ph + 20} textAnchor="middle" className="st-lbl">
+              {tick(v)}
+            </text>
+          ))}
         <line x1={sx} x2={sx} y1={top} y2={top + ph} className="st-spot" />
-      </>
-    );
-    over = (
-      <>
-        <clipPath id={clip}>
-          <rect className="st-reveal" x={0} y={0} width={W} height={H} />
-        </clipPath>
-        <g clipPath={`url(#${clip})`}>
-          {curve && <path d={curve} pathLength={1} className="st-knock" />}
-          {curve && <path d={curve} pathLength={1} className="st-curve" />}
+        <g clipPath={`url(#c${uid})`}>
+          {area && <path d={area} fill={`url(#a${uid})`} />}
+          {curve && <path d={curve} className="st-curve" stroke={`url(#g${uid})`} />}
         </g>
         {quotes.map((q, i) => {
           const x = xs(q.strike);
           return (
             <g key={q.strike} className="st-rung" style={{ "--i": i } as React.CSSProperties}>
               <line x1={x} x2={x} y1={ys(q.bid)} y2={ys(q.ask)} />
-              <line x1={x - 4} x2={x + 4} y1={ys(q.bid)} y2={ys(q.bid)} />
-              <line x1={x - 4} x2={x + 4} y1={ys(q.ask)} y2={ys(q.ask)} />
             </g>
           );
         })}
         <g ref={dotRef} className="st-probe-dot">
-          <circle cx={0} cy={0} r={phone ? 5 : 6} />
+          <circle cx={0} cy={0} r={6} />
         </g>
         {penP !== null && (
           <g className="st-pen">
-            <circle cx={sx} cy={ys(penP)} r={phone ? 4 : 5} />
-            {!phone && (
-              <text x={sx + 10} y={ys(penP) - 10} className="st-pen-lbl">
-                spot {fmtPrice(m.spot)}
-              </text>
-            )}
+            <circle cx={sx} cy={ys(penP)} r={9} className="st-pen-halo" />
+            <circle cx={sx} cy={ys(penP)} r={4.5} />
           </g>
         )}
-      </>
+      </svg>
     );
     note = !curve
       ? "No confident fit stored yet. The limit is held, not loosened."
       : ladder.state === "unavailable"
-        ? "Gemini quotes are not loading right now. The curve is the last fit stored onchain."
+        ? `Gemini quotes are not loading right now. The curve is the last fit stored onchain, spot ${fmtPrice(m.spot)}.`
         : ladder.state === "ok"
-          ? `${quotes.length} Gemini quotes stand on the fit the program stored onchain.`
+          ? `${quotes.length} Gemini quotes on the fit stored onchain. Spot ${fmtPrice(m.spot)}.`
           : "Reading Gemini quotes.";
   }
 
   const stale = m.status === "stale";
   return (
-    <section
-      className={`stage${stale ? " is-stale" : ""}${m.limit === null ? " is-empty" : ""}`}
-      aria-labelledby={id}
-      ref={sectionRef}
-      onPointerMove={(e) => {
-        const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
-        if (e.pointerType === "mouse" && paper) probe(e.clientX, e.clientY, paper);
-      }}
-      onPointerDown={(e) => {
-        const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
-        if (e.pointerType !== "mouse" && paper) probe(e.clientX, e.clientY, paper);
-      }}
-      onPointerLeave={(e) => {
-        if (e.pointerType === "mouse") hideProbe();
-      }}
-    >
-      {children && (
-        <div className="wrap stage-copy-w">
-          <div className="stage-copy">{children}</div>
-        </div>
-      )}
-      {scale.current && (
-        <span className="st-hint" aria-hidden>
-          {phone ? "Tap the paper to read any strike" : "Move across the paper to read any strike"}
-        </span>
-      )}
-      <div className="stage-paper" ref={ref} aria-hidden>
-        <svg className="st-under" width={W} height={H} viewBox={`0 0 ${W} ${H}`} focusable="false">
-          {under}
-        </svg>
-        <svg className="st-over" width={W} height={H} viewBox={`0 0 ${W} ${H}`} focusable="false">
-          {over}
-        </svg>
-        <div ref={probeRef} className="st-probe" style={{ top, height: ph }}>
-          <span ref={readRef} className="st-probe-read" />
-        </div>
+    <section className={`stage${stale ? " is-stale" : ""}${m.limit === null ? " is-empty" : ""}`} aria-labelledby={id}>
+      <div className="scene" aria-hidden>
+        <span className="scene-img" />
+        <span className="orb orb-a" />
+        <span className="orb orb-b" />
+        <span className="orb orb-c" />
       </div>
-      <div className="wrap stage-fig-w">
-        <div className="stage-figure">
+      <div className={`wrap stage-grid${children ? "" : " is-solo"}`}>
+        {children && <div className="stage-copy">{children}</div>}
+        <div
+          className="stage-card glass"
+          ref={cardRef}
+          onPointerMove={(e) => {
+            const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
+            if (e.pointerType === "mouse" && paper) probe(e.clientX, e.clientY, paper);
+          }}
+          onPointerDown={(e) => {
+            const paper = e.currentTarget.querySelector<HTMLElement>(".stage-paper");
+            if (e.pointerType !== "mouse" && paper) probe(e.clientX, e.clientY, paper);
+          }}
+          onPointerLeave={(e) => {
+            if (e.pointerType === "mouse") hideProbe();
+          }}
+        >
           <p className="sf-k">
-            <span>{symbol} borrow limit</span>
+            <span>{symbol} borrow limit, live</span>
             <StatusCell status={m.down ? null : m.status} />
           </p>
           <p className="numeral" aria-label={m.limit === null ? `${symbol} limit not read yet` : `${symbol} limit ${pct1(m.limit)}`}>
@@ -221,12 +186,19 @@ export function Stage({ symbol, children, id }: { symbol: Symbol; children?: Rea
                   ? [
                       m.ageText ? `fit ${m.ageText}` : null,
                       `implied vol ${pct1(Number(m.feed.sigmaBps))}`,
-                      m.limit !== null ? `buffer ${((m.liq - m.limit) / 100).toFixed(1)} pts to liquidation` : null,
+                      m.limit !== null ? `buffer ${((m.liq - m.limit) / 100).toFixed(1)} pts` : null,
                     ]
                       .filter(Boolean)
                       .join("  ·  ")
                   : `No ${symbol} feed on devnet yet`}
           </p>
+          <div className="stage-paper" ref={ref} aria-hidden style={{ height: chart ? H : 0 }}>
+            {chart}
+            <div ref={probeRef} className="st-probe" style={{ top, height: ph }}>
+              <span ref={readRef} className="st-probe-read" />
+            </div>
+          </div>
+          {chart && scale.current && <p className="st-hint">{compact ? "Tap the curve to read any strike" : "Point at the curve to read any strike"}</p>}
           {note && <p className="sf-note">{note}</p>}
         </div>
       </div>

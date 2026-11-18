@@ -61,7 +61,7 @@ export function Closer() {
   };
 
   return (
-    <section className="closer" aria-labelledby="close-title" data-scene onPointerMove={move} onPointerLeave={leave}>
+    <section className="closer ink" aria-labelledby="close-title" data-scene onPointerMove={move} onPointerLeave={leave}>
       <div className="wrap closer-grid">
         <div className="closer-in">
           <p className="shead-k">Error 6005, from the program</p>

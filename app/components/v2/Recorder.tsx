@@ -32,7 +32,7 @@ function Trace({ pts, loading, since, until, lo, hi, cap, sym }: { pts: TracePoi
   if (!pts || pts.length < 2) {
     return (
       <span ref={ref} className="ch-trace is-empty">
-        <span>{loading ? "reading 24 hours of posts" : pts === undefined ? "trace not loading" : "not enough posts in 24h"}</span>
+        <span>{loading ? "reading 24 hours of posts" : pts === undefined ? "24h trace returns when the relayer is back" : "not enough posts in 24h"}</span>
       </span>
     );
   }
@@ -41,7 +41,27 @@ function Trace({ pts, loading, since, until, lo, hi, cap, sym }: { pts: TracePoi
   return (
     <span ref={ref} className="ch-trace">
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`${sym} limit over 24 hours, ${pct1(pts[0].v * 10000)} to ${pct1(last.v * 10000)}`}>
+        <defs>
+          <linearGradient id={`rf${sym}`} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="var(--ch)" stopOpacity="0.32" />
+            <stop offset="1" stopColor="var(--ch)" stopOpacity="0" />
+          </linearGradient>
+          <clipPath id={`rc${sym}`}>
+            <rect className="ch-reveal" x={0} y={0} width={w} height={h} />
+          </clipPath>
+        </defs>
         <line x1={0} x2={w} y1={y(cap)} y2={y(cap)} className="ch-cap" />
+        <g clipPath={`url(#rc${sym})`}>
+        {segs.map((s, i) =>
+          s.length > 1 ? (
+            <path
+              key={`a${i}`}
+              className="ch-area"
+              fill={`url(#rf${sym})`}
+              d={`${s.map((p, j) => `${j ? "L" : "M"}${x(p.ts).toFixed(1)},${y(p.v).toFixed(1)}`).join("")}L${x(s[s.length - 1].ts).toFixed(1)},${h}L${x(s[0].ts).toFixed(1)},${h}Z`}
+            />
+          ) : null,
+        )}
         {segs.map((s, i) =>
           s.length > 1 ? (
             <path key={i} className="ch-line" d={s.map((p, j) => `${j ? "L" : "M"}${x(p.ts).toFixed(1)},${y(p.v).toFixed(1)}`).join("")} />
@@ -49,7 +69,7 @@ function Trace({ pts, loading, since, until, lo, hi, cap, sym }: { pts: TracePoi
             <circle key={i} className="ch-solo" cx={x(s[0].ts)} cy={y(s[0].v)} r="1.5" />
           ) : null,
         )}
-        <rect className="ch-cover" x={0} y={0} width={w} height={h} />
+        </g>
         <circle className="ch-pen" cx={x(last.ts)} cy={y(last.v)} r="3.5" />
       </svg>
     </span>
@@ -79,7 +99,7 @@ export function Recorder() {
           const status = ok ? feedStatus(f, ok.config.params, now) : null;
           const limit = ok && f ? feedEffectiveLtvBps(f, ok.config.params, now) : null;
           return (
-            <li key={s} style={{ "--i": i } as React.CSSProperties}>
+            <li key={s} style={{ "--i": i, "--ch": `var(--a-${s.toLowerCase()})` } as React.CSSProperties}>
               <Link href={`/asset/${s}`} className="ch">
                 <span className="ch-id">
                   <strong>{s}</strong>

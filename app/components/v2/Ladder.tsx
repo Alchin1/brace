@@ -67,6 +67,7 @@ export function LadderRungs({ symbol, max = 12 }: { symbol: Symbol; max?: number
                 )}
                 <span className="rung-k">{fmtPrice(r.strike)}</span>
                 <span className="rung-track" aria-hidden>
+                  {(mid ?? r.fit) !== null && <span className="rung-bar" style={{ width: `${(mid ?? r.fit ?? 0) * 100}%` }} />}
                   {r.bid !== null && r.ask !== null && (
                     <span className="rung-q" style={{ left: `${r.bid * 100}%`, width: `${Math.max(0.6, (r.ask - r.bid) * 100)}%` }} />
                   )}
@@ -81,7 +82,7 @@ export function LadderRungs({ symbol, max = 12 }: { symbol: Symbol; max?: number
       <p className="rungs-foot">
         {source === "quotes" ? (
           <>
-            <span className="key key-q" aria-hidden /> Gemini bid to ask <span className="key key-f" aria-hidden /> onchain fit
+            <span className="key key-m" aria-hidden /> mid chance <span className="key key-q" aria-hidden /> Gemini bid to ask <span className="key key-f" aria-hidden /> onchain fit
           </>
         ) : source === "fit" ? (
           "Gemini quotes are not loading right now, so every rung shows the onchain fit only."
