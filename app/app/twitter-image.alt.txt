@@ -1,1 +1,1 @@
-Brace: lending limits that move before the market does. Gemini prediction markets, turned into an onchain volatility oracle for Solana lending.
+Brace: lending limits that move before the market does. Gemini prediction market odds, turned into borrow limits onchain on Solana.

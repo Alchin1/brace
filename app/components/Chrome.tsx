@@ -8,7 +8,7 @@ import { PROGRAM_ID, REPO_URL, explorerAddress, feedEffectiveLtvBps, feedStatus 
 import { pct1 } from "@/lib/chart";
 import { RELAYER_URL } from "@/lib/history";
 import { useBoard } from "./BoardProvider";
-import { BraceMark } from "./ui/BraceMark";
+import { Logo } from "./ui/Logo";
 import { CopyField } from "./ui/CopyField";
 
 type Theme = "light" | "dark";
@@ -285,7 +285,7 @@ export function Header() {
       <header className={`site-header${scrolled ? " is-scrolled" : ""}`}>
         <div className="wrap hd">
           <Link href="/" className="brand" aria-label="Brace, devnet, home">
-            <BraceMark size={24} />
+            <Logo size={24} />
             <span className="brand-word">Brace</span>
             <span className="net">devnet</span>
           </Link>
@@ -320,7 +320,7 @@ export function Footer() {
       <div className="wrap ft">
         <div className="ft-brand">
           <Link href="/" className="brand" aria-label="Brace, home">
-            <BraceMark size={24} />
+            <Logo size={24} />
             <span className="brand-word">Brace</span>
           </Link>
           <p>Lending limits from live prediction market odds. A devnet build for UBC 2026. Test funds only.</p>

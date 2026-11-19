@@ -11,7 +11,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 RELAYER="${RELAYER:-https://brace-relayer.ohjaye0.workers.dev}"
-APP="${APP:-https://brace-ivory.vercel.app}"
+APP="${APP:-https://braced.vercel.app}"
 MAX_AGE="${MAX_AGE:-120}"
 
 step() { printf '\n== %s\n' "$*"; }

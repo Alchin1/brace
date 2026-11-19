@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { HistoryView } from "@/components/HistoryView";
 import { PageHead } from "@/components/ui/PageHead";
 
-export const metadata: Metadata = { title: "History" };
+export const metadata: Metadata = { title: "History", alternates: { canonical: "/history" } };
 
 export default function HistoryPage() {
   return (

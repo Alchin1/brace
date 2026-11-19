@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { MiniBoard } from "@/components/ui/MiniBoard";
 
-export const metadata: Metadata = { title: "Page not found" };
+export const metadata: Metadata = { title: "Page not found", alternates: { canonical: null }, robots: { index: false } };
 
 const RUNGS = ["a", "b", "c", "404", "d", "e", "f"];
 

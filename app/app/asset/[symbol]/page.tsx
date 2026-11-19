@@ -13,7 +13,7 @@ type Props = { params: Promise<{ symbol: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { symbol } = await params;
-  return { title: `${symbol.toUpperCase()} feed` };
+  return { title: `${symbol.toUpperCase()} feed`, alternates: { canonical: `/asset/${symbol.toUpperCase()}` } };
 }
 
 export default async function AssetPage({ params }: Props) {
